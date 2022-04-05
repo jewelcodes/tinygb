@@ -173,6 +173,23 @@ void write_reg16(int reg, uint16_t r) {
     }
 }
 
+uint16_t read_reg16(int reg) {
+    switch(reg) {
+    case REG_BC:
+        return cpu.bc;
+    case REG_DE:
+        return cpu.de;
+    case REG_HL:
+        return cpu.hl;
+    case REG_SP:
+        return cpu.sp;
+    default:
+        write_log("undefined opcode %02X %02X %02X, dumping CPU state...\n", read_byte(cpu.pc), read_byte(cpu.pc+1), read_byte(cpu.pc+2));
+        dump_cpu();
+        return 0xFFFF;    // unreachable
+    }
+}
+
 /*
    INDIVIDUAL INSTRUCTIONS ARE IMPLEMENTED HERE
  */
@@ -416,16 +433,68 @@ void cpl() {
     count_cycles(1);
 }
 
+void ld_bc_a() {
+#ifdef DISASM
+    write_log("[disasm] ld (bc), a\n");
+#endif
+
+    uint8_t a = read_reg8(REG_A);
+    write_byte(cpu.bc, a);
+
+    cpu.pc++;
+    count_cycles(2);
+}
+
+void inc_r16() {
+    uint8_t opcode = read_byte(cpu.pc);
+    int reg = (opcode >> 4) & 3;
+
+#ifdef DISASM
+    write_log("[disasm] inc %s\n", registers16[reg]);
+#endif
+
+    uint16_t val = read_reg16(reg);
+    val++;
+    write_reg16(reg, val);
+
+    cpu.pc++;
+    count_cycles(2);
+}
+
+void xor_r() {
+    uint8_t opcode = read_byte(cpu.pc);
+    int reg = opcode & 7;
+
+#ifdef DISASM
+    write_log("[disasm] xor %s\n", registers[reg]);
+#endif
+
+    uint8_t val = read_reg8(reg);
+    uint8_t a = read_reg8(REG_A);
+
+    a ^= val;
+
+    if(!a) cpu.af |= FLAG_ZF;
+    else cpu.af &= (~FLAG_ZF);
+
+    cpu.af &= ~(FLAG_N | FLAG_H | FLAG_CY);
+
+    write_reg8(REG_A, a);
+
+    cpu.pc++;
+    count_cycles(1);
+}
+
 // lookup table
 void (*opcodes[256])() = {
-    nop, ld_r_xxxx, NULL, NULL, NULL, dec_r, NULL, NULL,  // 0x00
-    NULL, NULL, NULL, NULL, NULL, dec_r, NULL, NULL,  // 0x08
-    NULL, ld_r_xxxx, NULL, NULL, NULL, dec_r, NULL, NULL,  // 0x10
-    jr_e, NULL, NULL, NULL, NULL, dec_r, NULL, NULL,  // 0x18
-    NULL, ld_r_xxxx, NULL, NULL, NULL, dec_r, NULL, NULL,  // 0x20
+    nop, ld_r_xxxx, ld_bc_a, inc_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x00
+    NULL, NULL, NULL, NULL, NULL, dec_r, ld_r_xx, NULL,  // 0x08
+    NULL, ld_r_xxxx, NULL, inc_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x10
+    jr_e, NULL, NULL, NULL, NULL, dec_r, ld_r_xx, NULL,  // 0x18
+    NULL, ld_r_xxxx, NULL, inc_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x20
     NULL, NULL, NULL, NULL, inc_r, dec_r, ld_r_xx, cpl,  // 0x28
-    NULL, ld_r_xxxx, NULL, NULL, NULL, NULL, NULL, NULL,  // 0x30
-    NULL, NULL, NULL, NULL, NULL, dec_r, NULL, NULL,  // 0x38
+    NULL, ld_r_xxxx, NULL, inc_r16, NULL, NULL, NULL, NULL,  // 0x30
+    NULL, NULL, NULL, NULL, NULL, dec_r, ld_r_xx, NULL,  // 0x38
 
     // 8-bit loads
     ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_hl, ld_r_r,  // 0x40
@@ -442,7 +511,7 @@ void (*opcodes[256])() = {
     sub_r, sub_r, sub_r, sub_r, sub_r, sub_r, NULL, sub_r,  // 0x90
     sbc_a_r, sbc_a_r, sbc_a_r, sbc_a_r, sbc_a_r, sbc_a_r, NULL, sbc_a_r,  // 0x98
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xA0
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xA8
+    xor_r, xor_r, xor_r, xor_r, xor_r, xor_r, NULL, xor_r,  // 0xA8
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xB0
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xB8
     NULL, NULL, NULL, jp_nn, NULL, NULL, NULL, NULL,  // 0xC0

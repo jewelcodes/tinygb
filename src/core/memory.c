@@ -7,6 +7,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#define MEMORY_LOG
+
 void *ram = NULL, *rom = NULL;
 char game_title[17];
 
@@ -84,9 +86,25 @@ uint8_t read_byte(uint16_t addr) {
 }
 
 inline uint16_t read_word(uint16_t addr) {
-    return (uint16_t)(read_byte(addr) | ((uint16_t)read_byte(addr) << 8));
+    return (uint16_t)(read_byte(addr) | ((uint16_t)read_byte(addr+1) << 8));
 }
 
 void write_byte(uint16_t addr, uint8_t byte) {
+#ifdef MEMORY_LOG
+    write_log("[memory] write 0x%02X to 0x%04X\n", byte, addr);
+#endif
 
+    if(addr <= 0x7FFF) {
+        switch(mbc_type) {
+        case 0:
+            write_log("[memory] undefined write at address 0x%04X in a ROM without an MBC, ignoring...\n", addr);
+            return;
+        default:
+            write_log("[memory] unimplemented write at address 0x%04X in MBC%d ROM\n", addr, mbc_type);
+            die(-1, NULL);
+            break;
+        }
+    }
+
+    die(-1, "unimplemented memory write\n");
 }
