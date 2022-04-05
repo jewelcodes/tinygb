@@ -1,6 +1,6 @@
 
-CFLAGS=-c -Wall -O2 -I/usr/include/SDL2 -I./src/include
-LDFLAGS=-O2 -lSDL2 
+CFLAGS=-c -Wall -Ofast -msse2 -I/usr/include/SDL2 -I./src/include
+LDFLAGS=-Ofast -msse2 -lSDL2 
 CC=gcc
 LD=gcc
 SRC:=$(shell find ./src -type f -name "*.c")

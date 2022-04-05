@@ -79,12 +79,17 @@ int main(int argc, char **argv) {
                 SDL_DestroyWindow(window);
                 SDL_Quit();
                 return 0;
+            case SDL_KEYDOWN:
+                cpu_log();
+                break;
             default:
                 break;
             }
         }
 
-        cpu_cycle();
+        for(int i = 0; i < CPU_CYCLES; i++) {
+            cpu_cycle();
+        }
     }
 
     die(0, "");

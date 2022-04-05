@@ -5,7 +5,8 @@
 #include <tinygb.h>
 #include <stdlib.h>
 
-#define DISASM
+//#define DISASM
+#define THROTTLE_LOG
 
 #define REG_A       7
 #define REG_B       0
@@ -20,7 +21,7 @@
 #define REG_HL      2
 #define REG_SP      3
 
-#define THROTTLE_THRESHOLD  20.0    // ms
+#define THROTTLE_THRESHOLD  2.0    // ms
 
 const char *registers[] = {
     "b", "c", "d", "e", "h", "l", "UNDEFINED", "a"
@@ -31,7 +32,7 @@ const char *registers16[] = {
 };
 
 cpu_t cpu;
-double cycles_time;
+double cycles_time = 0.0;
 int cycles = 0;
 int total_cycles = 0;
 void (*opcodes[256])();
@@ -45,7 +46,7 @@ void count_cycles(int n) {
 
     cycles_time += msec;
     if(cycles_time >= THROTTLE_THRESHOLD) {
-#ifdef DISASM
+#ifdef THROTTLE_LOG
         write_log("[cpu] accumulated %d cycles, delaying %d ms\n", cycles, (int)cycles_time);
 #endif
         int msec_int = (int)cycles_time;
@@ -55,11 +56,15 @@ void count_cycles(int n) {
     }
 }
 
-void dump_cpu() {
+void cpu_log() {
     write_log(" AF = 0x%04X   BC = 0x%04X   DE = 0x%04X\n", cpu.af, cpu.bc, cpu.de);
     write_log(" HL = 0x%04X   SP = 0x%04X   PC = 0x%04X\n", cpu.hl, cpu.sp, cpu.pc);
     write_log(" executed total cycles = %d\n", total_cycles);
     write_log(" time until next CPU throttle = %lf ms\n", THROTTLE_THRESHOLD - cycles_time);
+}
+
+void dump_cpu() {
+    cpu_log();
     die(-1, NULL);
 }
 
@@ -369,21 +374,22 @@ void inc_r() {
 
 void jr_e() {
     uint8_t e = read_byte(cpu.pc+1);
+    cpu.pc++;
 
     if(e & 0x80) {
         uint8_t pe = ~e;
         pe++;
-#ifdef DISASM
-    write_log("[disasm] jr 0x%02X (-%d)\n", e, pe);
-#endif
+        #ifdef DISASM
+            write_log("[disasm] jr 0x%02X (-%d)\n", e, pe);
+        #endif
 
-    cpu.pc -= pe;
+        cpu.pc -= pe;
     } else {
-#ifdef DISASM
-    write_log("[disasm] jr 0x%02X (+%d)\n", e, e);
-#endif
+        #ifdef DISASM
+            write_log("[disasm] jr 0x%02X (+%d)\n", e, e);
+        #endif
 
-    cpu.pc += e;
+        cpu.pc += e;
     }
 
     count_cycles(3);
@@ -485,15 +491,64 @@ void xor_r() {
     count_cycles(1);
 }
 
+void ldd_hl_a() {
+#ifdef DISASM
+    write_log("[disasm] ldd (hl), a\n");
+#endif
+
+    uint8_t a = read_reg8(REG_A);
+
+    write_byte(cpu.hl, a);
+    cpu.hl--;
+
+    cpu.pc++;
+    count_cycles(2);
+}
+
+void jr_nz() {
+    uint8_t e = read_byte(cpu.pc+1);
+    cpu.pc += 2;
+
+    if(e & 0x80) {
+        uint8_t pe = ~e;
+        pe++;
+        #ifdef DISASM
+            write_log("[disasm] jr nz 0x%02X (-%d)\n", e, pe);
+        #endif
+
+        if(cpu.af & FLAG_ZF) {
+            // ZF is set; condition false
+            count_cycles(2);
+        } else {
+            // ZF not set; condition true
+            cpu.pc -= pe;
+            count_cycles(3);
+        }
+    } else {
+        #ifdef DISASM
+            write_log("[disasm] jr nz 0x%02X (+%d)\n", e, e);
+        #endif
+
+        if(cpu.af & FLAG_ZF) {
+            // ZF is set; condition false
+            count_cycles(2);
+        } else {
+            // ZF not set; condition true
+            cpu.pc += e;
+            count_cycles(3);
+        }
+    }
+}
+
 // lookup table
 void (*opcodes[256])() = {
     nop, ld_r_xxxx, ld_bc_a, inc_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x00
     NULL, NULL, NULL, NULL, NULL, dec_r, ld_r_xx, NULL,  // 0x08
     NULL, ld_r_xxxx, NULL, inc_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x10
     jr_e, NULL, NULL, NULL, NULL, dec_r, ld_r_xx, NULL,  // 0x18
-    NULL, ld_r_xxxx, NULL, inc_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x20
+    jr_nz, ld_r_xxxx, NULL, inc_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x20
     NULL, NULL, NULL, NULL, inc_r, dec_r, ld_r_xx, cpl,  // 0x28
-    NULL, ld_r_xxxx, NULL, inc_r16, NULL, NULL, NULL, NULL,  // 0x30
+    NULL, ld_r_xxxx, ldd_hl_a, inc_r16, NULL, NULL, NULL, NULL,  // 0x30
     NULL, NULL, NULL, NULL, NULL, dec_r, ld_r_xx, NULL,  // 0x38
 
     // 8-bit loads

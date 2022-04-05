@@ -20,7 +20,6 @@ void write_log(const char *text, ...) {
 
     if(log_file) {
         fprintf(log_file, "%s", log_buffer);
-        fflush(log_file);
     }
     fprintf(stdout, "%s", log_buffer);
 

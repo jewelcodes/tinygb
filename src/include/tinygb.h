@@ -11,6 +11,7 @@
 #define GB_HEIGHT   144
 
 #define CPU_SPEED   4194304 // Hz
+#define CPU_CYCLES  (CPU_SPEED/1000)
 
 typedef struct {
     uint16_t af, bc, de, hl, sp, pc;
@@ -32,6 +33,7 @@ void die(int, const char *, ...);
 void memory_start();
 void cpu_start();
 void cpu_cycle();
+void cpu_log();
 
 uint8_t read_byte(uint16_t);
 uint16_t read_word(uint16_t);
