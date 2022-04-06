@@ -4,9 +4,12 @@
 
 #include <tinygb.h>
 #include <stdlib.h>
+#include <ioports.h>
 
-//#define DISASM
+#define DISASM
 #define THROTTLE_LOG
+
+#define disasm_log  write_log("[disasm] %16d %04X ", total_cycles, cpu.pc); write_log
 
 #define REG_A       7
 #define REG_B       0
@@ -77,6 +80,9 @@ void cpu_start() {
     cpu.hl = 0x014D;
     cpu.sp = 0xFFFE;
     cpu.pc = 0x0100;    // skip the fixed rom and just exec the cartridge
+
+    io_if = 0;
+    io_ie = 0;
 
     if(is_cgb) {
         cpu_speed = CGB_CPU_SPEED;
@@ -210,7 +216,7 @@ uint16_t read_reg16(int reg) {
 
 void nop() {
 #ifdef DISASM
-    write_log("[disasm] nop\n");
+    disasm_log("nop\n");
 #endif
 
     cpu.pc++;
@@ -221,7 +227,7 @@ void jp_nn() {
     uint16_t new_pc = read_word(cpu.pc+1);
 
 #ifdef DISASM
-    write_log("[disasm] jp 0x%04X\n", new_pc);
+    disasm_log("jp 0x%04X\n", new_pc);
 #endif
 
     cpu.pc = new_pc;
@@ -235,7 +241,7 @@ void ld_r_r() {
     int y = opcode & 7;
 
 #ifdef DISASM
-    write_log("[disasm] ld %s, %s\n", registers[x], registers[y]);
+    disasm_log("ld %s, %s\n", registers[x], registers[y]);
 #endif
 
     uint8_t src = read_reg8(y);
@@ -250,7 +256,7 @@ void sbc_a_r() {
     int reg = opcode & 7;
 
 #ifdef DISASM
-    write_log("[disasm] sbc a, %s\n", registers[reg]);
+    disasm_log("sbc a, %s\n", registers[reg]);
 #endif
 
     uint8_t a = read_reg8(REG_A);
@@ -265,10 +271,10 @@ void sbc_a_r() {
     if(!a) cpu.af |= FLAG_ZF;
     else cpu.af &= (~FLAG_ZF);
 
-    if(a > (cpu.af >> 8)) cpu.af |= FLAG_CY;
+    if(a > read_reg8(REG_A)) cpu.af |= FLAG_CY;
     else cpu.af &= (~FLAG_CY);
 
-    if((a & 0x0F) < ((cpu.af >> 8) & 0x0F)) cpu.af |= FLAG_H;
+    if((a & 0x0F) < (read_reg8(REG_A) & 0x0F)) cpu.af |= FLAG_H;
     else cpu.af &= (~FLAG_H);
 
     write_reg8(REG_A, a);
@@ -282,7 +288,7 @@ void sub_r() {
     int reg = opcode & 7;
 
 #ifdef DISASM
-    write_log("[disasm] sub %s\n", registers[reg]);
+    disasm_log("sub %s\n", registers[reg]);
 #endif
 
     uint8_t a = read_reg8(REG_A);
@@ -296,10 +302,10 @@ void sub_r() {
     if(!a) cpu.af |= FLAG_ZF;
     else cpu.af &= (~FLAG_ZF);
 
-    if(a > (cpu.af >> 8)) cpu.af |= FLAG_CY;
+    if(a > read_reg8(REG_A)) cpu.af |= FLAG_CY;
     else cpu.af &= (~FLAG_CY);
 
-    if((a & 0x0F) < ((cpu.af >> 8) & 0x0F)) cpu.af |= FLAG_H;
+    if((a & 0x0F) < (read_reg8(REG_A) & 0x0F)) cpu.af |= FLAG_H;
     else cpu.af &= (~FLAG_H);
 
     write_reg8(REG_A, a);
@@ -314,7 +320,7 @@ void dec_r() {
     int reg = (opcode >> 3) & 7;
 
 #ifdef DISASM
-    write_log("[disasm] dec %s\n", registers[reg]);
+    disasm_log("dec %s\n", registers[reg]);
 #endif
 
     uint8_t r;
@@ -343,7 +349,7 @@ void ld_r_xx() {
     uint8_t val = read_byte(cpu.pc+1);
 
 #ifdef DISASM
-    write_log("[disasm] ld %s, 0x%02X\n", registers[reg], val);
+    disasm_log("ld %s, 0x%02X\n", registers[reg], val);
 #endif
 
     write_reg8(reg, val);
@@ -358,7 +364,7 @@ void inc_r() {
     int reg = (opcode >> 3) & 7;
 
 #ifdef DISASM
-    write_log("[disasm] inc %s\n", registers[reg]);
+    disasm_log("inc %s\n", registers[reg]);
 #endif
 
     uint8_t r;
@@ -383,21 +389,22 @@ void inc_r() {
 
 void jr_e() {
     uint8_t e = read_byte(cpu.pc+1);
-    cpu.pc++;
 
     if(e & 0x80) {
         uint8_t pe = ~e;
         pe++;
         #ifdef DISASM
-            write_log("[disasm] jr 0x%02X (-%d)\n", e, pe);
+            disasm_log("jr 0x%02X (-%d) (0x%04X)\n", e, pe, (cpu.pc - pe) + 2);
         #endif
 
+        cpu.pc += 2;
         cpu.pc -= pe;
     } else {
         #ifdef DISASM
-            write_log("[disasm] jr 0x%02X (+%d)\n", e, e);
+            disasm_log("jr 0x%02X (+%d) (0x%04X)\n", e, e, cpu.pc + 2 + e);
         #endif
 
+        cpu.pc += 2;
         cpu.pc += e;
     }
 
@@ -409,7 +416,7 @@ void ld_r_hl() {
     int reg = (opcode >> 3) & 7;
 
 #ifdef DISASM
-    write_log("[disasm] ld %s, (hl)\n", registers[reg]);
+    disasm_log("ld %s, (hl)\n", registers[reg]);
 #endif
 
     uint8_t val = read_byte(cpu.hl);
@@ -426,7 +433,7 @@ void ld_r_xxxx() {
     uint16_t val = read_word(cpu.pc+1);
 
 #ifdef DISASM
-    write_log("[disasm] ld %s, 0x%04X\n", registers16[reg], val);
+    disasm_log("ld %s, 0x%04X\n", registers16[reg], val);
 #endif
 
     write_reg16(reg, val);
@@ -437,7 +444,7 @@ void ld_r_xxxx() {
 
 void cpl() {
 #ifdef DISASM
-    write_log("[disasm] cpl\n");
+    disasm_log("cpl\n");
 #endif
 
     write_reg8(REG_A, read_reg8(REG_A) ^ 0xFF);
@@ -450,7 +457,7 @@ void cpl() {
 
 void ld_bc_a() {
 #ifdef DISASM
-    write_log("[disasm] ld (bc), a\n");
+    disasm_log("ld (bc), a\n");
 #endif
 
     uint8_t a = read_reg8(REG_A);
@@ -465,7 +472,7 @@ void inc_r16() {
     int reg = (opcode >> 4) & 3;
 
 #ifdef DISASM
-    write_log("[disasm] inc %s\n", registers16[reg]);
+    disasm_log("inc %s\n", registers16[reg]);
 #endif
 
     uint16_t val = read_reg16(reg);
@@ -481,7 +488,7 @@ void xor_r() {
     int reg = opcode & 7;
 
 #ifdef DISASM
-    write_log("[disasm] xor %s\n", registers[reg]);
+    disasm_log("xor %s\n", registers[reg]);
 #endif
 
     uint8_t val = read_reg8(reg);
@@ -502,7 +509,7 @@ void xor_r() {
 
 void ldd_hl_a() {
 #ifdef DISASM
-    write_log("[disasm] ldd (hl), a\n");
+    disasm_log("ldd (hl), a\n");
 #endif
 
     uint8_t a = read_reg8(REG_A);
@@ -516,14 +523,15 @@ void ldd_hl_a() {
 
 void jr_nz() {
     uint8_t e = read_byte(cpu.pc+1);
-    cpu.pc += 2;
 
     if(e & 0x80) {
         uint8_t pe = ~e;
         pe++;
         #ifdef DISASM
-            write_log("[disasm] jr nz 0x%02X (-%d)\n", e, pe);
+            disasm_log("jr nz 0x%02X (-%d) (0x%04X)\n", e, pe, (cpu.pc - pe) + 2);
         #endif
+
+        cpu.pc += 2;
 
         if(cpu.af & FLAG_ZF) {
             // ZF is set; condition false
@@ -535,8 +543,10 @@ void jr_nz() {
         }
     } else {
         #ifdef DISASM
-            write_log("[disasm] jr nz 0x%02X (+%d)\n", e, e);
+            disasm_log("jr nz 0x%02X (+%d) (0x%04X)\n", e, e, cpu.pc + 2 + e);
         #endif
+
+        cpu.pc += 2;
 
         if(cpu.af & FLAG_ZF) {
             // ZF is set; condition false
@@ -549,6 +559,106 @@ void jr_nz() {
     }
 }
 
+void di() {
+#ifdef DISASM
+    disasm_log("di\n");
+#endif
+
+    cpu.ime = 0;
+    cpu.pc++;
+    count_cycles(1);
+}
+
+void ldh_a8_a() {
+    uint8_t a8 = read_byte(cpu.pc+1);
+
+#ifdef DISASM
+    disasm_log("ldh (0x%02X), a\n", a8);
+#endif
+
+    uint16_t addr = 0xFF00 + a8;
+    write_byte(addr, read_reg8(REG_A));
+
+    cpu.pc += 2;
+    count_cycles(3);
+}
+
+void cp_xx() {
+    uint8_t val = read_byte(cpu.pc+1);
+
+#ifdef DISASM
+    disasm_log("cp 0x%02X\n", val);
+#endif
+
+    uint8_t a = read_reg8(REG_A);
+
+    a -= val;
+
+    cpu.af |= FLAG_N;
+
+    if(!a) cpu.af |= FLAG_ZF;
+    else cpu.af &= (~FLAG_ZF);
+
+    if(a > read_reg8(REG_A)) cpu.af |= FLAG_CY;
+    else cpu.af &= (~FLAG_CY);
+
+    if((a & 0x0F) < (read_reg8(REG_A) & 0x0F)) cpu.af |= FLAG_H;
+    else cpu.af &= (~FLAG_H);
+
+    cpu.pc += 2;
+    count_cycles(2);
+}
+
+void jr_z() {
+    uint8_t e = read_byte(cpu.pc+1);
+
+    if(e & 0x80) {
+        uint8_t pe = ~e;
+        pe++;
+        #ifdef DISASM
+            disasm_log("jr z 0x%02X (-%d) (0x%04X)\n", e, pe, (cpu.pc - pe) + 2);
+        #endif
+
+        cpu.pc += 2;
+
+        if(!(cpu.af & FLAG_ZF)) {
+            // ZF is false; condition false
+            count_cycles(2);
+        } else {
+            // ZF is set; condition true
+            cpu.pc -= pe;
+            count_cycles(3);
+        }
+    } else {
+        #ifdef DISASM
+            disasm_log("jr z 0x%02X (+%d) (0x%04X)\n", e, e, cpu.pc + 2 + e);
+        #endif
+
+        cpu.pc += 2;
+
+        if(!(cpu.af & FLAG_ZF)) {
+            // ZF is false; condition false
+            count_cycles(2);
+        } else {
+            // ZF is set; condition true
+            cpu.pc += e;
+            count_cycles(3);
+        }
+    }
+}
+
+void ld_a16_a() {
+    uint16_t addr = read_word(cpu.pc+1);
+
+#ifdef DISASM
+    disasm_log("ld (0x%04X), a\n", addr);
+#endif
+
+    write_byte(addr, read_reg8(REG_A));
+    cpu.pc += 3;
+    count_cycles(4);
+}
+
 // lookup table
 void (*opcodes[256])() = {
     nop, ld_r_xxxx, ld_bc_a, inc_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x00
@@ -556,7 +666,7 @@ void (*opcodes[256])() = {
     NULL, ld_r_xxxx, NULL, inc_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x10
     jr_e, NULL, NULL, NULL, NULL, dec_r, ld_r_xx, NULL,  // 0x18
     jr_nz, ld_r_xxxx, NULL, inc_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x20
-    NULL, NULL, NULL, NULL, inc_r, dec_r, ld_r_xx, cpl,  // 0x28
+    jr_z, NULL, NULL, NULL, inc_r, dec_r, ld_r_xx, cpl,  // 0x28
     NULL, ld_r_xxxx, ldd_hl_a, inc_r16, NULL, NULL, NULL, NULL,  // 0x30
     NULL, NULL, NULL, NULL, NULL, dec_r, ld_r_xx, NULL,  // 0x38
 
@@ -567,7 +677,7 @@ void (*opcodes[256])() = {
     ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_hl, ld_r_r,  // 0x58
     ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_hl, ld_r_r,  // 0x60
     ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_hl, ld_r_r,  // 0x68
-    ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_r, NULL, ld_r_r,  // 0x70
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0x70
     ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_hl, ld_r_r,  // 0x78
 
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0x80
@@ -582,8 +692,8 @@ void (*opcodes[256])() = {
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xC8
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xD0
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xD8
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xE0
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xE8
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xF0
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xF8
+    ldh_a8_a, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xE0
+    NULL, NULL, ld_a16_a, NULL, NULL, NULL, NULL, NULL,  // 0xE8
+    NULL, NULL, NULL, di, NULL, NULL, NULL, NULL,  // 0xF0
+    NULL, NULL, NULL, NULL, NULL, NULL, cp_xx, NULL,  // 0xF8
 };

@@ -14,7 +14,7 @@
 #define CGB_CPU_SPEED       8388608
 
 typedef struct {
-    uint16_t af, bc, de, hl, sp, pc;
+    uint16_t af, bc, de, hl, sp, pc, ime;
 } cpu_t;
 
 #define FLAG_ZF     0x80
@@ -35,9 +35,14 @@ void write_log(const char *, ...);
 void die(int, const char *, ...);
 void memory_start();
 void cpu_start();
+void display_start();
 void cpu_cycle();
 void cpu_log();
 
 uint8_t read_byte(uint16_t);
 uint16_t read_word(uint16_t);
 void write_byte(uint16_t, uint8_t);
+
+void write_display_io(uint16_t, uint8_t);
+void sb_write(uint8_t);
+void sc_write(uint8_t);

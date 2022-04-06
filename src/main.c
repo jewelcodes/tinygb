@@ -70,6 +70,7 @@ int main(int argc, char **argv) {
     // start emulation
     memory_start();
     cpu_start();
+    display_start();
 
     int cpu_cycles = cpu_speed/1000;
 

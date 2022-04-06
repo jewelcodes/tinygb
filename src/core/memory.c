@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <ioports.h>
 
 #define MEMORY_LOG
 
@@ -34,8 +35,9 @@ uint8_t *cartridge_type, *cgb_compatibility;
 
 int mbc_type;
 
-#define WORK_RAM            0       // +0
-#define CART_RAM            32768   // +32k assuming work RAM has a maximum of 8x4k banks
+#define WORK_RAM            (0)     // +0
+#define HIGH_RAM            (32768) // +32k assuming work RAM has a maximum of 8x4k banks
+#define CART_RAM            (HIGH_RAM+128)  // +128 because HRAM is exactly 127 bytes long but add one byte for alignment
 
 int rom_bank = 1;
 int cart_ram_bank = 0;
@@ -44,7 +46,7 @@ int is_cgb = 0;
 
 void memory_start() {
     // rom was already initialized in main.c
-    ram = calloc(1024, 1024);   // 1 MB is the maximum RAM size in MBC5
+    ram = calloc(1024, 1024 + 33);   // 1 MB is the maximum RAM size in MBC5 + 33 KB for WRAM + HRAM
     if(!ram) {
         die(1, "unable to allocate RAM\n");
     }
@@ -137,6 +139,44 @@ inline void write_wram(int bank, uint16_t addr, uint8_t byte) {
     bytes[(bank * 4096) + addr + WORK_RAM] = byte;
 }
 
+inline void write_hram(uint16_t addr, uint8_t byte) {
+    uint8_t *bytes = (uint8_t *)ram;
+    bytes[addr + HIGH_RAM] = byte;
+}
+
+void write_io(uint16_t addr, uint8_t byte) {
+    switch(addr) {
+    case IF:
+        return if_write(byte);
+    case LCDC:
+    case STAT:
+    case SCY:
+    case SCX:
+    case LY:
+    case LYC:
+    case DMA:
+    case BGP:
+    case OBP0:
+    case OBP1:
+    case WX:
+    case WY:
+    case VBK:
+    case HDMA1:
+    case HDMA2:
+    case HDMA3:
+    case HDMA4:
+    case HDMA5:
+        return write_display_io(addr, byte);
+    case SB:
+        return sb_write(byte);
+    case SC:
+        return sc_write(byte);
+    default:
+        write_log("[memory] unimplemented write to I/O port 0x%04X value 0x%02X\n", addr, byte);
+        die(-1, NULL);
+    }
+}
+
 void write_byte(uint16_t addr, uint8_t byte) {
 /*#ifdef MEMORY_LOG
     write_log("[memory] write 0x%02X to 0x%04X\n", byte, addr);
@@ -148,20 +188,26 @@ void write_byte(uint16_t addr, uint8_t byte) {
         return write_wram(work_ram_bank, addr - 0xD000, byte);
     } else if(addr >= 0xE000 && addr <= 0xEFFF) {
         return write_wram(0, addr - 0xE000, byte); // echo bank 0
-    } else if(addr >= 0xF000 && addr <=- 0xFDFF) {
+    } else if(addr >= 0xF000 && addr <= 0xFDFF) {
         return write_wram(work_ram_bank, addr - 0xF000, byte); // echo bank n
+    } else if(addr >= 0xFF80 && addr <= 0xFFFE) {
+        return write_hram(addr - 0xFF80, byte);
     } else if(addr <= 0x7FFF) {
         switch(mbc_type) {
         case 0:
             write_log("[memory] undefined write at address 0x%04X in a ROM without an MBC, ignoring...\n", addr);
             return;
         default:
-            write_log("[memory] unimplemented write at address 0x%04X in MBC%d ROM\n", addr, mbc_type);
+            write_log("[memory] unimplemented write at address 0x%04X value 0x%02X in MBC%d ROM\n", addr, byte, mbc_type);
             die(-1, NULL);
             break;
         }
+    } else if (addr >= 0xFF00 && addr <= 0xFF7F) {
+        return write_io(addr, byte);
+    } else if(addr == 0xFFFF) {
+        return ie_write(byte);
     }
 
-    write_log("[memory] unimplemented write at address 0x%04X in MBC%d ROM\n", addr, mbc_type);
+    write_log("[memory] unimplemented write at address 0x%04X value 0x%02X in MBC%d ROM\n", addr, byte, mbc_type);
     die(-1, NULL);
 }
