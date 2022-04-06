@@ -6,8 +6,8 @@
 #include <stdlib.h>
 #include <ioports.h>
 
-#define DISASM
-#define THROTTLE_LOG
+//#define DISASM
+//#define THROTTLE_LOG
 
 #define disasm_log  write_log("[disasm] %16d %04X ", total_cycles, cpu.pc); write_log
 
@@ -91,6 +91,13 @@ void cpu_start() {
     }
 
     write_log("[cpu] started with speed %lf MHz\n", (double)cpu_speed/1000000);
+
+    // determine values that will be used to keep track of timing
+    timing.cpu_cycles_ms = cpu_speed / 1000;
+    timing.cpu_cycles_vline = (int)((double)timing.cpu_cycles_ms * REFRESH_TIME_LINE);
+
+    write_log("[cpu] cycles per ms = %d\n", timing.cpu_cycles_ms);
+    write_log("[cpu] cycles per v-line refresh = %d\n", timing.cpu_cycles_vline);
 }
 
 void cpu_cycle() {
@@ -659,6 +666,20 @@ void ld_a16_a() {
     count_cycles(4);
 }
 
+void ldh_a_a8() {
+    uint8_t a8 = read_byte(cpu.pc+1);
+
+#ifdef DISASM
+    disasm_log("ldh a, (0x%02X)\n", a8);
+#endif
+
+    uint16_t addr = 0xFF00 + a8;
+    write_reg8(REG_A, read_byte(addr));
+
+    cpu.pc += 2;
+    count_cycles(3);
+}
+
 // lookup table
 void (*opcodes[256])() = {
     nop, ld_r_xxxx, ld_bc_a, inc_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x00
@@ -694,6 +715,6 @@ void (*opcodes[256])() = {
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xD8
     ldh_a8_a, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xE0
     NULL, NULL, ld_a16_a, NULL, NULL, NULL, NULL, NULL,  // 0xE8
-    NULL, NULL, NULL, di, NULL, NULL, NULL, NULL,  // 0xF0
+    ldh_a_a8, NULL, NULL, di, NULL, NULL, NULL, NULL,  // 0xF0
     NULL, NULL, NULL, NULL, NULL, NULL, cp_xx, NULL,  // 0xF8
 };

@@ -117,12 +117,67 @@ void memory_start() {
     }
 }
 
+inline uint8_t read_wram(int bank, uint8_t addr) {
+    uint8_t *bytes = (uint8_t *)ram;
+    return bytes[(bank * 4096) + addr + WORK_RAM];
+}
+
+inline uint8_t read_hram(uint16_t addr) {
+    uint8_t *bytes = (uint8_t *)ram;
+    return bytes[addr + HIGH_RAM];
+}
+
+uint8_t read_io(uint16_t addr) {
+    switch(addr) {
+    case IE:
+        return ie_read();
+    case LCDC:
+    case STAT:
+    case SCY:
+    case SCX:
+    case LY:
+    case LYC:
+    case DMA:
+    case BGP:
+    case OBP0:
+    case OBP1:
+    case WX:
+    case WY:
+    case VBK:
+    case HDMA1:
+    case HDMA2:
+    case HDMA3:
+    case HDMA4:
+    case HDMA5:
+        return read_display_io(addr);
+    default:
+        write_log("[memory] unimplemented read from IO port 0x%04X\n", addr);
+        die(-1, NULL);
+    }
+
+    return 0xFF;    // unreachable
+}
+
 uint8_t read_byte(uint16_t addr) {
     uint8_t *rom_bytes = (uint8_t *)rom;
     if(!mbc_type && addr <= 0x7FFF) {
         return rom_bytes[addr];
-    } else if (addr <= 0x3FFF) {
+    } else if(addr <= 0x3FFF) {
         return rom_bytes[addr];
+    } else if(addr >= 0xC000 && addr <= 0xCFFF) {
+        return read_wram(0, addr - 0xC000);
+    } else if(addr >= 0xD000 && addr <= 0xDFFF) {
+        return read_wram(work_ram_bank, addr - 0xD000);
+    } else if(addr >= 0xE000 && addr <= 0xEFFF) {
+        return read_wram(0, addr - 0xE000); // echo bank 0
+    } else if(addr >= 0xF000 && addr <= 0xFDFF) {
+        return read_wram(work_ram_bank, addr - 0xF000); // echo bank n
+    } else if(addr >= 0xFF80 && addr <= 0xFFFE) {
+        return read_hram(addr - 0xFF80);
+    } else if(addr >= 0xFF00 && addr <= 0xFF7F) {
+        return read_io(addr);
+    } else if(addr == 0xFFFF) {
+        return ie_read();
     }
 
     write_log("[memory] unimplemented read at address 0x%04X in MBC%d ROM\n", addr, mbc_type);

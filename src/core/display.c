@@ -15,6 +15,7 @@ void display_start() {
     display.lcdc = 0x91;
     display.scy = 0;
     display.scx = 0;
+    display.ly = 0;
     display.lyc = 0;
     display.bgp = 0xFC;
     display.obp0 = 0xFF;
@@ -54,5 +55,30 @@ void write_display_io(uint16_t addr, uint8_t byte) {
     default:
         write_log("[memory] unimplemented write to I/O port 0x%04X value 0x%02X\n", addr, byte);
         die(-1, NULL);
+    }
+}
+
+uint8_t read_display_io(uint16_t addr) {
+    switch(addr) {
+    case LY:
+        return display.ly;
+    default:
+        write_log("[memory] unimplemented read from IO port 0x%04X\n", addr);
+        die(-1, NULL);
+    }
+
+    return 0xFF;    // unreachable
+}
+
+void display_cycle() {
+    // this should be executed upon every v-line refresh
+    // that is once every 0.108769 ms
+    if(display.lcdc & LCDC_ENABLE) {
+        display.ly++;
+        if(display.ly >= 154) display.ly = 0;
+
+        if(display.ly == display.lyc) {
+            write_log("[display] STAT interrupt\n");
+        }
     }
 }

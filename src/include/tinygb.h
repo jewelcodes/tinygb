@@ -13,6 +13,36 @@
 #define GB_CPU_SPEED        4194304 // Hz
 #define CGB_CPU_SPEED       8388608
 
+/* DISPLAY:
+
+    Width                       160 px
+    Height                      144 px
+    Refresh rate                59.7 Hz
+    Visible v-lines             144 lines
+    Invisible v-lines           10 lines
+    Total v-lines               154 lines
+    Total refresh time          16.7504 ms
+    Time per v-line             0.108769 ms
+    Time for visible lines      15.6627 ms
+    Time for invisible lines    1.08769 ms
+    V-sync pause                1.08769 ms
+
+ * VALUES TO BE USED TO KEEP THINGS IN SYNC:
+
+    CPU Cycles/Millisecond      CPU_SPEED/1000
+    CPU Cycles/Refresh Line     Above * Time per v-line
+
+ */
+
+#define REFRESH_RATE            59.7        // Hz
+#define TOTAL_REFRESH_TIME      16.7504     // ms
+#define REFRESH_TIME_LINE       0.108769    // ms
+#define VSYNC_PAUSE             1.08769     // ms
+
+typedef struct {
+    int cpu_cycles_ms, cpu_cycles_vline;
+} timing_t;
+
 typedef struct {
     uint16_t af, bc, de, hl, sp, pc, ime;
 } cpu_t;
@@ -29,6 +59,7 @@ extern int is_cgb;
 extern int cpu_speed;
 
 extern SDL_Window *window;
+extern timing_t timing;
 
 void open_log();
 void write_log(const char *, ...);
@@ -43,6 +74,15 @@ uint8_t read_byte(uint16_t);
 uint16_t read_word(uint16_t);
 void write_byte(uint16_t, uint8_t);
 
+// interrupts
+uint8_t if_read();
+uint8_t ie_read();
+
+// display
 void write_display_io(uint16_t, uint8_t);
+uint8_t read_display_io(uint16_t);
+void display_cycle();
+
+// serial
 void sb_write(uint8_t);
 void sc_write(uint8_t);

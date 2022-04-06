@@ -11,6 +11,7 @@ long rom_size;
 int scaling = 4;
 
 SDL_Window *window;
+timing_t timing;
 
 int main(int argc, char **argv) {
     if(argc != 2) {
@@ -72,8 +73,6 @@ int main(int argc, char **argv) {
     cpu_start();
     display_start();
 
-    int cpu_cycles = cpu_speed/1000;
-
     SDL_Event e;
     while(1) {
         while(SDL_PollEvent(&e)) {
@@ -90,8 +89,14 @@ int main(int argc, char **argv) {
             }
         }
 
-        for(int i = 0; i < cpu_cycles; i++) {
-            cpu_cycle();
+        // one frame
+        for(int i = 0; i < GB_HEIGHT; i++) {
+            for(int j = 0; j < timing.cpu_cycles_vline; j++) {
+                // cpu cycles for exactly 0.108769 ms
+                cpu_cycle();
+            }
+
+            display_cycle();
         }
     }
 

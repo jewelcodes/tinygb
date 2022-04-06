@@ -14,7 +14,7 @@ void sb_write(uint8_t byte) {
     write_log("[serial] write to SB register value 0x%02X\n", byte);
 #endif
 
-    sb = 0;
+    sb = byte;
 }
 
 void sc_write(uint8_t byte) {
@@ -22,5 +22,5 @@ void sc_write(uint8_t byte) {
     write_log("[serial] write to SC register value 0x%02X\n", byte);
 #endif
 
-    sc = 0;
+    sc = byte;
 }

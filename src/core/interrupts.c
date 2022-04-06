@@ -23,3 +23,11 @@ void ie_write(uint8_t byte) {
 
     io_ie = byte;
 }
+
+uint8_t ie_read() {
+    return io_ie;
+}
+
+uint8_t if_read() {
+    return io_if;
+}

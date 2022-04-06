@@ -75,21 +75,22 @@
 #define HDMA4   0xFF54
 #define HDMA5   0xFF55
 
-
 /// interrupt enable control register
 #define IE      0xFFFF
 
-#define IF_VLANK    0x01
-#define IF_STAT     0x02
-#define IF_TIMER    0x04
-#define IF_SERIAL   0x08
-#define IF_JOYPAD   0x10
+#define LCDC_ENABLE     0x80
 
-#define IE_VBLANK   0x01
-#define IE_STAT     0x02
-#define IE_TIMER    0x04
-#define IE_SERIAL   0x08
-#define IE_JOYPAD   0x10
+#define IF_VLANK        0x01
+#define IF_STAT         0x02
+#define IF_TIMER        0x04
+#define IF_SERIAL       0x08
+#define IF_JOYPAD       0x10
+
+#define IE_VBLANK       0x01
+#define IE_STAT         0x02
+#define IE_TIMER        0x04
+#define IE_SERIAL       0x08
+#define IE_JOYPAD       0x10
 
 void if_write(uint8_t);
 void ie_write(uint8_t);
