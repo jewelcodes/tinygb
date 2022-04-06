@@ -10,8 +10,8 @@
 #define GB_WIDTH    160
 #define GB_HEIGHT   144
 
-#define CPU_SPEED   4194304 // Hz
-#define CPU_CYCLES  (CPU_SPEED/1000)
+#define GB_CPU_SPEED        4194304 // Hz
+#define CGB_CPU_SPEED       8388608
 
 typedef struct {
     uint16_t af, bc, de, hl, sp, pc;
@@ -24,6 +24,9 @@ typedef struct {
 
 extern long rom_size;
 extern void *rom, *ram;
+extern int is_cgb;
+
+extern int cpu_speed;
 
 extern SDL_Window *window;
 

@@ -36,13 +36,14 @@ double cycles_time = 0.0;
 int cycles = 0;
 int total_cycles = 0;
 void (*opcodes[256])();
+int cpu_speed;
 
 void count_cycles(int n) {
     n++;    // all cpu cycles are practically always one cycle longer
     total_cycles += n;
     cycles += n;
 
-    double msec = (double)(n * 1000.0 / CPU_SPEED);
+    double msec = (double)(n * 1000.0 / cpu_speed);
 
     cycles_time += msec;
     if(cycles_time >= THROTTLE_THRESHOLD) {
@@ -76,6 +77,14 @@ void cpu_start() {
     cpu.hl = 0x014D;
     cpu.sp = 0xFFFE;
     cpu.pc = 0x0100;    // skip the fixed rom and just exec the cartridge
+
+    if(is_cgb) {
+        cpu_speed = CGB_CPU_SPEED;
+    } else {
+        cpu_speed = GB_CPU_SPEED;
+    }
+
+    write_log("[cpu] started with speed %lf MHz\n", (double)cpu_speed/1000000);
 }
 
 void cpu_cycle() {

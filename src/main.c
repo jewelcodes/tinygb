@@ -71,6 +71,8 @@ int main(int argc, char **argv) {
     memory_start();
     cpu_start();
 
+    int cpu_cycles = cpu_speed/1000;
+
     SDL_Event e;
     while(1) {
         while(SDL_PollEvent(&e)) {
@@ -87,7 +89,7 @@ int main(int argc, char **argv) {
             }
         }
 
-        for(int i = 0; i < CPU_CYCLES; i++) {
+        for(int i = 0; i < cpu_cycles; i++) {
             cpu_cycle();
         }
     }

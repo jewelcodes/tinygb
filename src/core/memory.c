@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include <string.h>
 
-//#define MEMORY_LOG
+#define MEMORY_LOG
 
 /*
                           *** MEMORY MAP *** 
@@ -30,7 +30,7 @@
 void *ram = NULL, *rom = NULL;
 char game_title[17];
 
-uint8_t *cartridge_type;
+uint8_t *cartridge_type, *cgb_compatibility;
 
 int mbc_type;
 
@@ -40,6 +40,7 @@ int mbc_type;
 int rom_bank = 1;
 int cart_ram_bank = 0;
 int work_ram_bank = 1;
+int is_cgb = 0;
 
 void memory_start() {
     // rom was already initialized in main.c
@@ -52,6 +53,20 @@ void memory_start() {
     memset(game_title, 0, 17);
     memcpy(game_title, rom+0x134, 16);
     write_log("game title is %s\n", game_title);
+
+    cgb_compatibility = (uint8_t *)rom + 0x143;
+    if(*cgb_compatibility == 0x80) {
+        write_log("game supports both CGB and original GB\n");
+        is_cgb = 1;
+    } else if(*cgb_compatibility == 0xC0) {
+        write_log("game only works on CGB\n");
+        is_cgb = 1;
+    } else if(!*cgb_compatibility) {
+        write_log("game doesn't support CGB\n");
+        is_cgb = 0;
+    } else {
+        die(-1, "undefined CGB compatibility value 0x%02X\n", *cgb_compatibility);
+    }
 
     cartridge_type = (uint8_t *)rom + 0x147;
 
@@ -89,14 +104,14 @@ void memory_start() {
         mbc_type = 5;
         break;
     default:
-        die(-1, "cartridge type is 0x%02X: unimplemented\n", *cartridge_type);
+        die(-1, "[mbc] cartridge type is 0x%02X: unimplemented\n", *cartridge_type);
         break;
     }
 
     if(!mbc_type) {
-        write_log("cartridge type is 0x%02X: no MBC\n", *cartridge_type);
+        write_log("[mbc] cartridge type is 0x%02X: no MBC\n", *cartridge_type);
     } else {
-        write_log("cartridge type is 0x%02X: MBC%d\n", *cartridge_type, mbc_type);
+        write_log("[mbc] cartridge type is 0x%02X: MBC%d\n", *cartridge_type, mbc_type);
     }
 }
 
