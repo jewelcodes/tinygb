@@ -101,9 +101,11 @@ int main(int argc, char **argv) {
             display_cycle();
         }*/
 
+        // regardless of whether the timer or display is faster, we wanna loop
+        // for exactly one frame (59 Hz)
         if(timing.cpu_cycles_timer > timing.cpu_cycles_vline) {
-            // refresh rate faster than timer, so use that
-            // we'll use v-line to track this stuff
+            // refresh rate faster than timer, so keep cycling the display
+            // until it's time to update the timer
             for(int i = 0; i < timing.main_cycles; i++) {
                 for(cycles = 0; cycles < timing.cpu_cycles_timer; cycles += timing.current_cycles) {
                     for(timing.current_cycles = 0; timing.current_cycles < timing.cpu_cycles_vline; ) {
@@ -116,7 +118,7 @@ int main(int argc, char **argv) {
                 timer_cycle();
             }
         } else {
-            // here the timer is faster, so we use the timer
+            // here the timer is faster, so we use the timer to track time
             for(int i = 0; i < timing.main_cycles; i++) {
                 for(cycles = 0; cycles < timing.cpu_cycles_vline; cycles += timing.current_cycles) {
                     for(timing.current_cycles = 0; timing.current_cycles < timing.cpu_cycles_timer; ) {
