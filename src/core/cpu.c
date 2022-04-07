@@ -220,6 +220,23 @@ uint16_t read_reg16(int reg) {
     }
 }
 
+inline void push(uint16_t word) {
+    cpu.sp--;
+    write_byte(cpu.sp, (uint8_t)(word >> 8));
+    cpu.sp--;
+    write_byte(cpu.sp, (uint8_t)word & 0xFF);
+}
+
+inline uint16_t pop() {
+    uint16_t val;
+    val = read_byte(cpu.sp);
+    cpu.sp++;
+    val |= read_byte(cpu.sp) << 8;
+    cpu.sp++;
+
+    return val;
+}
+
 /*
    INDIVIDUAL INSTRUCTIONS ARE IMPLEMENTED HERE
  */
@@ -683,6 +700,19 @@ void ldh_a_a8() {
     count_cycles(3);
 }
 
+void call_a16() {
+    uint16_t a16 = read_word(cpu.pc+1);
+
+#ifdef DISASM
+    disasm_log("call 0x%04X\n", a16);
+#endif
+
+    push(cpu.pc+3);
+    cpu.pc = a16;
+
+    count_cycles(6);
+}
+
 // lookup table
 void (*opcodes[256])() = {
     nop, ld_r_xxxx, ld_bc_a, inc_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x00
@@ -713,7 +743,7 @@ void (*opcodes[256])() = {
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xB0
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xB8
     NULL, NULL, NULL, jp_nn, NULL, NULL, NULL, NULL,  // 0xC0
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xC8
+    NULL, NULL, NULL, NULL, NULL, call_a16, NULL, NULL,  // 0xC8
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xD0
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xD8
     ldh_a8_a, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xE0
