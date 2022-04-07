@@ -5,6 +5,7 @@
 #include <tinygb.h>
 #include <ioports.h>
 #include <string.h>
+#include <math.h>
 
 #define TIMER_LOG
 
@@ -31,7 +32,7 @@ void set_timer_freq(uint8_t freq) {
     if(timing.cpu_cycles_vline > timing.cpu_cycles_timer) {
         timing.main_cycles = GB_HEIGHT+10;
     } else {
-        timing.main_cycles = (int)((double)TOTAL_REFRESH_TIME / (double)time_per_tick);
+        timing.main_cycles = (int)((double)round(TOTAL_REFRESH_TIME / (double)time_per_tick));
     }
 
     write_log("[timer] main loop will repeat %d times per cycle\n", timing.main_cycles);
