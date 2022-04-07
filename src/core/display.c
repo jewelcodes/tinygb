@@ -82,7 +82,18 @@ void write_display_io(uint16_t addr, uint8_t byte) {
 #endif
         display.obp1 = byte;
         return;
-
+    case WX:
+#ifdef DISPLAY_LOG
+        write_log("[display] write to WX register value 0x%02X\n", byte);
+#endif
+        display.wx = byte;
+        return;
+    case WY:
+#ifdef DISPLAY_LOG
+        write_log("[display] write to WY register value 0x%02X\n", byte);
+#endif
+        display.wy = byte;
+        return;
     default:
         write_log("[memory] unimplemented write to I/O port 0x%04X value 0x%02X\n", addr, byte);
         die(-1, NULL);
