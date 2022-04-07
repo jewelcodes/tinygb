@@ -134,6 +134,8 @@ uint8_t read_display_io(uint16_t addr) {
 void display_cycle() {
     // this should be executed upon every v-line refresh
     // that is once every 0.108769 ms
+    //write_log("[display] display cycle\n");
+
     if(display.lcdc & LCDC_ENABLE) {
         display.ly++;
         if(display.ly >= 154) display.ly = 0;

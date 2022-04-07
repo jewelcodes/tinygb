@@ -226,6 +226,11 @@ void write_io(uint16_t addr, uint8_t byte) {
         return sb_write(byte);
     case SC:
         return sc_write(byte);
+    case DIV:
+    case TIMA:
+    case TMA:
+    case TAC:
+        return timer_write(addr, byte);
     default:
         write_log("[memory] unimplemented write to I/O port 0x%04X value 0x%02X\n", addr, byte);
         die(-1, NULL);

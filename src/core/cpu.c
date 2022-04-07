@@ -46,6 +46,8 @@ void count_cycles(int n) {
     total_cycles += n;
     cycles += n;
 
+    timing.current_cycles += n;
+
     double msec = (double)(n * 1000.0 / cpu_speed);
 
     cycles_time += msec;
@@ -93,6 +95,7 @@ void cpu_start() {
     write_log("[cpu] started with speed %lf MHz\n", (double)cpu_speed/1000000);
 
     // determine values that will be used to keep track of timing
+    timing.current_cycles = 0;
     timing.cpu_cycles_ms = cpu_speed / 1000;
     timing.cpu_cycles_vline = (int)((double)timing.cpu_cycles_ms * REFRESH_TIME_LINE);
 

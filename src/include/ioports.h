@@ -80,6 +80,8 @@
 
 #define LCDC_ENABLE     0x80
 
+#define TAC_START       0x04
+
 #define IF_VLANK        0x01
 #define IF_STAT         0x02
 #define IF_TIMER        0x04
@@ -100,3 +102,7 @@ extern uint8_t io_if, io_ie;
 typedef struct {
     uint8_t lcdc, stat, scy, scx, ly, lyc, dma, bgp, obp0, obp1, wx, wy, vbk, hdma1, hdma2, hdma3, hdma4, hdma5;
 } display_t;
+
+typedef struct {
+    uint8_t div, tima, tma, tac;
+} timer_regs_t;

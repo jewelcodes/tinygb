@@ -72,8 +72,10 @@ int main(int argc, char **argv) {
     memory_start();
     cpu_start();
     display_start();
+    timer_start();
 
     SDL_Event e;
+    int cycles = 0;
     while(1) {
         while(SDL_PollEvent(&e)) {
             switch(e.type) {
@@ -90,13 +92,42 @@ int main(int argc, char **argv) {
         }
 
         // one frame
-        for(int i = 0; i < GB_HEIGHT; i++) {
+        /*for(int i = 0; i < GB_HEIGHT; i++) {
             for(int j = 0; j < timing.cpu_cycles_vline; j++) {
                 // cpu cycles for exactly 0.108769 ms
                 cpu_cycle();
             }
 
             display_cycle();
+        }*/
+
+        if(timing.cpu_cycles_timer > timing.cpu_cycles_vline) {
+            // refresh rate faster than timer, so use that
+            // we'll use v-line to track this stuff
+            for(int i = 0; i < timing.main_cycles; i++) {
+                for(cycles = 0; cycles < timing.cpu_cycles_timer; cycles += timing.current_cycles) {
+                    for(timing.current_cycles = 0; timing.current_cycles < timing.cpu_cycles_vline; ) {
+                        cpu_cycle();
+                    }
+
+                    display_cycle();
+                }
+
+                timer_cycle();
+            }
+        } else {
+            // here the timer is faster, so we use the timer
+            for(int i = 0; i < timing.main_cycles; i++) {
+                for(cycles = 0; cycles < timing.cpu_cycles_vline; cycles += timing.current_cycles) {
+                    for(timing.current_cycles = 0; timing.current_cycles < timing.cpu_cycles_timer; ) {
+                        cpu_cycle();
+                    }
+
+                    timer_cycle();
+                }
+
+                display_cycle();
+            }
         }
     }
 

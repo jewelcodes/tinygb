@@ -40,7 +40,9 @@
 #define VSYNC_PAUSE             1.08769     // ms
 
 typedef struct {
-    int cpu_cycles_ms, cpu_cycles_vline;
+    int cpu_cycles_ms, cpu_cycles_vline, cpu_cycles_timer;
+    int current_cycles;
+    int main_cycles;    // how many times we should cycle in main()
 } timing_t;
 
 typedef struct {
@@ -67,6 +69,7 @@ void die(int, const char *, ...);
 void memory_start();
 void cpu_start();
 void display_start();
+void timer_start();
 void cpu_cycle();
 void cpu_log();
 
@@ -86,3 +89,7 @@ void display_cycle();
 // serial
 void sb_write(uint8_t);
 void sc_write(uint8_t);
+
+// timer
+void timer_write(uint16_t, uint8_t);
+void timer_cycle();
