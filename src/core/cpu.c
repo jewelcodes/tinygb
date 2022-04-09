@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <ioports.h>
 
-//#define DISASM
+#define DISASM
 //#define THROTTLE_LOG
 
 #define disasm_log  write_log("[disasm] %16d %04X ", total_cycles, cpu.pc); write_log
@@ -39,6 +39,7 @@ double cycles_time = 0.0;
 int cycles = 0;
 int total_cycles = 0;
 void (*opcodes[256])();
+void (*ex_opcodes[256])();
 int cpu_speed;
 
 void count_cycles(int n) {
@@ -713,16 +714,172 @@ void call_a16() {
     count_cycles(6);
 }
 
-// lookup table
+void and_n() {
+    uint8_t n = read_byte(cpu.pc+1);
+
+#ifdef DISASM
+    disasm_log("and 0x%02X\n", n);
+#endif
+
+    uint8_t a = read_reg8(REG_A);
+    a &= n;
+    write_reg8(REG_A, a);
+
+    cpu.af &= ~(FLAG_N | FLAG_CY);
+    cpu.af |= FLAG_H;
+
+    if(!a) cpu.af |= FLAG_ZF;
+    else cpu.af &= (~FLAG_ZF);
+
+    cpu.pc += 2;
+    count_cycles(2);
+}
+
+void ret() {
+#ifdef DISASM
+    disasm_log("ret\n");
+#endif
+
+    cpu.pc = pop();
+    count_cycles(4);
+}
+
+void ld_hl_n() {
+    uint8_t n = read_byte(cpu.pc+1);
+
+#ifdef DISASM
+    disasm_log("ld (hl), 0x%02X\n", n);
+#endif
+
+    write_byte(cpu.hl, n);
+
+    cpu.pc += 2;
+    count_cycles(3);
+}
+
+void dec_r16() {
+    uint8_t opcode = read_byte(cpu.pc);
+    int reg = (opcode >> 4) & 3;
+
+#ifdef DISASM
+    disasm_log("dec %s\n", registers16[reg]);
+#endif
+
+    uint16_t val = read_reg16(reg);
+    val--;
+    write_reg16(reg, val);
+
+    cpu.pc++;
+    count_cycles(2);
+}
+
+void or_r() {
+    uint8_t opcode = read_byte(cpu.pc);
+
+    int reg = opcode & 7;
+
+#ifdef DISASM
+    disasm_log("or %s\n", registers[reg]);
+#endif
+
+    uint8_t a = read_reg8(REG_A);
+    uint8_t r = read_reg8(reg);
+
+    a |= r;
+    write_reg8(REG_A, a);
+
+    if(!a) cpu.af |= FLAG_ZF;
+    else cpu.af &= (~FLAG_ZF);
+
+    cpu.af &= ~(FLAG_N | FLAG_H | FLAG_CY);
+
+    cpu.pc++;
+    count_cycles(1);
+}
+
+void push_r16() {
+    uint8_t opcode = read_byte(cpu.pc);
+    int reg = (opcode >> 4) & 3;
+
+#ifdef DISASM
+    disasm_log("push %s\n", registers16[reg]);
+#endif
+
+    push(read_reg16(reg));
+    cpu.pc++;
+    count_cycles(4);
+}
+
+void push_af() {
+#ifdef DISASM
+    disasm_log("push af\n");
+#endif
+
+    push(cpu.af);
+    cpu.pc++;
+    count_cycles(4);
+}
+
+void ldi_hl_a() {
+#ifdef DISASM
+    disasm_log("ldi (hl), a\n");
+#endif
+
+    uint8_t a = read_reg8(REG_A);
+
+    write_byte(cpu.hl, a);
+    cpu.hl++;
+
+    cpu.pc++;
+    count_cycles(2);
+}
+
+/* 
+    EXTENDED OPCODES
+    these are all prefixed with 0xCB first
+*/
+
+// general handler for extended opcodes
+void ex_opcode() {
+    uint8_t opcode = read_byte(cpu.pc+1);
+
+    if(!ex_opcodes[opcode]) {
+        write_log("undefined opcode %02X %02X %02X, dumping CPU state...\n", read_byte(cpu.pc), read_byte(cpu.pc+1), read_byte(cpu.pc+2));
+        dump_cpu();
+    } else {
+        ex_opcodes[opcode]();
+    }
+}
+
+// individual 0xCB-prefixed instructions
+void res_n_r() {
+    uint8_t opcode = read_byte(cpu.pc+1);
+
+    int reg = opcode & 7;
+    int n = (opcode >> 4) & 7;
+
+#ifdef DISASM
+    disasm_log("res %d, %s\n", n, registers[reg]);
+#endif
+
+    uint8_t r = read_reg8(reg);
+    r &= ~(1 << n);
+    write_reg8(reg, r);
+
+    cpu.pc += 2;
+    count_cycles(2);
+}
+
+// lookup tables
 void (*opcodes[256])() = {
     nop, ld_r_xxxx, ld_bc_a, inc_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x00
-    NULL, NULL, NULL, NULL, NULL, dec_r, ld_r_xx, NULL,  // 0x08
+    NULL, NULL, NULL, dec_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x08
     NULL, ld_r_xxxx, NULL, inc_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x10
-    jr_e, NULL, NULL, NULL, NULL, dec_r, ld_r_xx, NULL,  // 0x18
-    jr_nz, ld_r_xxxx, NULL, inc_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x20
-    jr_z, NULL, NULL, NULL, inc_r, dec_r, ld_r_xx, cpl,  // 0x28
-    NULL, ld_r_xxxx, ldd_hl_a, inc_r16, NULL, NULL, NULL, NULL,  // 0x30
-    NULL, NULL, NULL, NULL, NULL, dec_r, ld_r_xx, NULL,  // 0x38
+    jr_e, NULL, NULL, dec_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x18
+    jr_nz, ld_r_xxxx, ldi_hl_a, inc_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x20
+    jr_z, NULL, NULL, dec_r16, inc_r, dec_r, ld_r_xx, cpl,  // 0x28
+    NULL, ld_r_xxxx, ldd_hl_a, inc_r16, NULL, NULL, ld_hl_n, NULL,  // 0x30
+    NULL, NULL, NULL, dec_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x38
 
     // 8-bit loads
     ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_hl, ld_r_r,  // 0x40
@@ -740,14 +897,49 @@ void (*opcodes[256])() = {
     sbc_a_r, sbc_a_r, sbc_a_r, sbc_a_r, sbc_a_r, sbc_a_r, NULL, sbc_a_r,  // 0x98
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xA0
     xor_r, xor_r, xor_r, xor_r, xor_r, xor_r, NULL, xor_r,  // 0xA8
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xB0
+    or_r, or_r, or_r, or_r, or_r, or_r, NULL, or_r,  // 0xB0
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xB8
-    NULL, NULL, NULL, jp_nn, NULL, NULL, NULL, NULL,  // 0xC0
-    NULL, NULL, NULL, NULL, NULL, call_a16, NULL, NULL,  // 0xC8
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xD0
+    NULL, NULL, NULL, jp_nn, NULL, push_r16, NULL, NULL,  // 0xC0
+    NULL, ret, NULL, ex_opcode, NULL, call_a16, NULL, NULL,  // 0xC8
+    NULL, NULL, NULL, NULL, NULL, push_r16, NULL, NULL,  // 0xD0
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xD8
-    ldh_a8_a, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xE0
+    ldh_a8_a, NULL, NULL, NULL, NULL, push_r16, and_n, NULL,  // 0xE0
     NULL, NULL, ld_a16_a, NULL, NULL, NULL, NULL, NULL,  // 0xE8
-    ldh_a_a8, NULL, NULL, di, NULL, NULL, NULL, NULL,  // 0xF0
+    ldh_a_a8, NULL, NULL, di, NULL, push_af, NULL, NULL,  // 0xF0
     NULL, NULL, NULL, NULL, NULL, NULL, cp_xx, NULL,  // 0xF8
+};
+
+void (*ex_opcodes[256])() = {
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x00
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x08
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x10
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x18
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x20
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x28
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x30
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x38
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x40
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x48
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x50
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x58
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x60
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x68
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x70
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x78
+    res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, NULL, res_n_r,     // 0x80
+    res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, NULL, res_n_r,     // 0x88
+    res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, NULL, res_n_r,     // 0x90
+    res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, NULL, res_n_r,     // 0x98
+    res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, NULL, res_n_r,     // 0xA0
+    res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, NULL, res_n_r,     // 0xA8
+    res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, NULL, res_n_r,     // 0xB0
+    res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, NULL, res_n_r,     // 0xB8
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0xC0
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0xC8
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0xD0
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0xD8
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0xE0
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0xE8
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0xF0
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0xF8
 };
