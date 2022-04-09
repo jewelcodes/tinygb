@@ -117,7 +117,7 @@ void memory_start() {
     }
 }
 
-inline uint8_t read_wram(int bank, uint8_t addr) {
+inline uint8_t read_wram(int bank, uint16_t addr) {
     uint8_t *bytes = (uint8_t *)ram;
     return bytes[(bank * 4096) + addr + WORK_RAM];
 }
