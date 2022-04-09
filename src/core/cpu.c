@@ -820,6 +820,29 @@ void push_af() {
     count_cycles(4);
 }
 
+void pop_r16() {
+    uint8_t opcode = read_byte(cpu.pc);
+    int reg = (opcode >> 4) & 3;
+
+#ifdef DISASM
+    disasm_log("pop %s\n", registers16[reg]);
+#endif
+
+    write_reg16(reg, pop());
+    cpu.pc++;
+    count_cycles(3);
+}
+
+void pop_af() {
+#ifdef DISASM
+    disasm_log("pop af\n");
+#endif
+
+    cpu.af = pop();
+    cpu.pc++;
+    count_cycles(3);
+}
+
 void ldi_hl_a() {
 #ifdef DISASM
     disasm_log("ldi (hl), a\n");
@@ -899,13 +922,13 @@ void (*opcodes[256])() = {
     xor_r, xor_r, xor_r, xor_r, xor_r, xor_r, NULL, xor_r,  // 0xA8
     or_r, or_r, or_r, or_r, or_r, or_r, NULL, or_r,  // 0xB0
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xB8
-    NULL, NULL, NULL, jp_nn, NULL, push_r16, NULL, NULL,  // 0xC0
+    NULL, pop_r16, NULL, jp_nn, NULL, push_r16, NULL, NULL,  // 0xC0
     NULL, ret, NULL, ex_opcode, NULL, call_a16, NULL, NULL,  // 0xC8
-    NULL, NULL, NULL, NULL, NULL, push_r16, NULL, NULL,  // 0xD0
+    NULL, pop_r16, NULL, NULL, NULL, push_r16, NULL, NULL,  // 0xD0
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xD8
-    ldh_a8_a, NULL, NULL, NULL, NULL, push_r16, and_n, NULL,  // 0xE0
+    ldh_a8_a, pop_r16, NULL, NULL, NULL, push_r16, and_n, NULL,  // 0xE0
     NULL, NULL, ld_a16_a, NULL, NULL, NULL, NULL, NULL,  // 0xE8
-    ldh_a_a8, NULL, NULL, di, NULL, push_af, NULL, NULL,  // 0xF0
+    ldh_a_a8, pop_af, NULL, di, NULL, push_af, NULL, NULL,  // 0xF0
     NULL, NULL, NULL, NULL, NULL, NULL, cp_xx, NULL,  // 0xF8
 };
 
