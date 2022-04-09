@@ -293,7 +293,7 @@ void write_byte(uint16_t addr, uint8_t byte) {
     } else if(addr <= 0x7FFF) {
         switch(mbc_type) {
         case 0:
-            write_log("[memory] undefined write at address 0x%04X in a ROM without an MBC, ignoring...\n", addr);
+            write_log("[memory] undefined write at address 0x%04X value 0x%02X in a ROM without an MBC, ignoring...\n", addr, byte);
             return;
         default:
             write_log("[memory] unimplemented write at address 0x%04X value 0x%02X in MBC%d ROM\n", addr, byte, mbc_type);
@@ -304,6 +304,11 @@ void write_byte(uint16_t addr, uint8_t byte) {
         return write_io(addr, byte);
     } else if(addr == 0xFFFF) {
         return ie_write(byte);
+    } else if(addr >= 0x8000 && addr <= 0x9FFF) {
+        return vram_write(addr, byte);
+    } else if(addr >= 0xFEA0 && addr <= 0xFEFF) {
+        write_log("[memory] undefined write at unusable address 0x%04X value 0x%02X, ignoring...\n", addr, byte);
+        return;
     }
 
     write_log("[memory] unimplemented write at address 0x%04X value 0x%02X in MBC%d ROM\n", addr, byte, mbc_type);

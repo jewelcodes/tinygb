@@ -5,10 +5,13 @@
 #include <tinygb.h>
 #include <ioports.h>
 #include <string.h>
+#include <stdlib.h>
 
 #define DISPLAY_LOG
 
 display_t display;
+
+void *vram;
 
 void display_start() {
     memset(&display, 0, sizeof(display_t));
@@ -22,6 +25,11 @@ void display_start() {
     display.obp1 = 0xFF;
     display.wy = 0;
     display.wx = 0;
+
+    vram = calloc(1, 16384);    // 8 KB for original gb, 2x8 KB for CGB
+    if(!vram) {
+        die(-1, "unable to allocate memory for VRAM\n");
+    }
 
     write_log("[display] initialized display\n");
 }
@@ -144,4 +152,11 @@ void display_cycle() {
             write_log("[display] STAT interrupt\n");
         }
     }
+}
+
+void vram_write(uint16_t addr, uint8_t byte) {
+    uint8_t *ptr = (uint8_t *)vram + byte;
+    ptr += (8192 * display.vbk);    // for CGB banking
+
+    *ptr = addr;
 }
