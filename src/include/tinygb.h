@@ -70,9 +70,13 @@ void memory_start();
 void cpu_start();
 void display_start();
 void timer_start();
+void sound_start();
+
+// cpu
 void cpu_cycle();
 void cpu_log();
 
+// memory
 uint8_t read_byte(uint16_t);
 uint16_t read_word(uint16_t);
 void write_byte(uint16_t, uint8_t);
@@ -93,3 +97,6 @@ void sc_write(uint8_t);
 // timer
 void timer_write(uint16_t, uint8_t);
 void timer_cycle();
+
+// sound
+void sound_write(uint16_t, uint8_t);

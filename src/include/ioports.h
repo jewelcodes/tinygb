@@ -106,3 +106,12 @@ typedef struct {
 typedef struct {
     uint8_t div, tima, tma, tac;
 } timer_regs_t;
+
+typedef struct {
+    uint8_t nr10, nr11, nr12, nr13, nr14;
+    uint8_t nr21, nr22, nr23, nr24;
+    uint8_t nr30, nr31, nr32, nr33, nr34;
+    uint8_t nr41, nr42, nr43, nr44;
+    uint8_t nr50, nr51, nr52;
+    uint8_t wav[16];
+} sound_t;

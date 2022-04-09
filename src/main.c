@@ -73,6 +73,7 @@ int main(int argc, char **argv) {
     cpu_start();
     display_start();
     timer_start();
+    sound_start();
 
     SDL_Event e;
     int cycles = 0;

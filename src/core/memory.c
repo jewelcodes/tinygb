@@ -231,6 +231,44 @@ void write_io(uint16_t addr, uint8_t byte) {
     case TMA:
     case TAC:
         return timer_write(addr, byte);
+    case NR10:
+    case NR11:
+    case NR12:
+    case NR13:
+    case NR14:
+    case NR21:
+    case NR22:
+    case NR23:
+    case NR24:
+    case NR30:
+    case NR31:
+    case NR32:
+    case NR33:
+    case NR34:
+    case NR41:
+    case NR42:
+    case NR43:
+    case NR44:
+    case NR50:
+    case NR51:
+    case NR52:
+    case WAV00:
+    case WAV01:
+    case WAV02:
+    case WAV03:
+    case WAV04:
+    case WAV05:
+    case WAV06:
+    case WAV07:
+    case WAV08:
+    case WAV09:
+    case WAV10:
+    case WAV11:
+    case WAV12:
+    case WAV13:
+    case WAV14:
+    case WAV15:
+        return sound_write(addr, byte);
     default:
         write_log("[memory] unimplemented write to I/O port 0x%04X value 0x%02X\n", addr, byte);
         die(-1, NULL);
