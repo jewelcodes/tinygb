@@ -76,7 +76,6 @@ int main(int argc, char **argv) {
     sound_start();
 
     SDL_Event e;
-    int cycles = 0;
     while(1) {
         while(SDL_PollEvent(&e)) {
             switch(e.type) {
@@ -93,15 +92,7 @@ int main(int argc, char **argv) {
         }
 
         // one frame
-        /*for(int i = 0; i < GB_HEIGHT; i++) {
-            for(int j = 0; j < timing.cpu_cycles_vline; j++) {
-                // cpu cycles for exactly 0.108769 ms
-                cpu_cycle();
-            }
-
-            display_cycle();
-        }*/
-
+        /*
         // regardless of whether the timer or display is faster, we wanna loop
         // for exactly one frame (59 Hz)
         if(timing.cpu_cycles_timer > timing.cpu_cycles_vline) {
@@ -132,6 +123,15 @@ int main(int argc, char **argv) {
                 display_cycle();
             }
         }
+
+        */
+
+       for(timing.current_cycles = 0; timing.current_cycles < timing.main_cycles; ) {
+           cpu_cycle();
+           display_cycle();
+
+            if(timing.current_cycles >= timing.cpu_cycles_timer) timer_cycle();
+       }
     }
 
     die(0, "");

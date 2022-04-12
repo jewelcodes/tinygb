@@ -101,7 +101,8 @@ void cpu_start() {
     timing.cpu_cycles_vline = (int)((double)timing.cpu_cycles_ms * REFRESH_TIME_LINE);
 
     write_log("[cpu] cycles per ms = %d\n", timing.cpu_cycles_ms);
-    write_log("[cpu] cycles per v-line refresh = %d\n", timing.cpu_cycles_vline);
+    timing.main_cycles = 70228;
+    //write_log("[cpu] cycles per v-line refresh = %d\n", timing.cpu_cycles_vline);
 }
 
 void cpu_cycle() {

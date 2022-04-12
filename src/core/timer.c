@@ -29,13 +29,13 @@ void set_timer_freq(uint8_t freq) {
     write_log("[timer] set timer frequency to %d Hz\n", current_timer_freq);
     write_log("[timer] cpu cycles per tick = %d\n", timing.cpu_cycles_timer);
 
-    if(timing.cpu_cycles_vline > timing.cpu_cycles_timer) {
+    /*if(timing.cpu_cycles_vline > timing.cpu_cycles_timer) {
         timing.main_cycles = GB_HEIGHT+10;
     } else {
         timing.main_cycles = (int)((double)round(TOTAL_REFRESH_TIME / (double)time_per_tick));
-    }
+    }*/
 
-    write_log("[timer] main loop will repeat %d times per cycle\n", timing.main_cycles);
+    //write_log("[timer] main loop will repeat %d times per cycle\n", timing.main_cycles);
 }
 
 void timer_start() {
@@ -79,7 +79,6 @@ void timer_write(uint16_t addr, uint8_t byte) {
 }
 
 void timer_cycle() {
-    // this has to be called depending on the timer frequency
 #ifdef TIMER_LOG
     //write_log("[timer] timer cycle\n");
 #endif

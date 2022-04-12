@@ -44,9 +44,11 @@ void write_display_io(uint16_t addr, uint8_t byte) {
         return;
     case STAT:
 #ifdef DISPLAY_LOG
-        write_log("[display] write to STAT register value 0x%02X\n", byte);
+        write_log("[display] write to STAT register value 0x%02X, ignoring lowest 3 bits\n", byte);
 #endif
-        display.stat = byte;
+        byte &= 0xF8;
+        display.stat &= 7;
+        display.stat |= byte;
         return;
     case SCX:
 #ifdef DISPLAY_LOG
@@ -140,16 +142,60 @@ uint8_t read_display_io(uint16_t addr) {
 }
 
 void display_cycle() {
-    // this should be executed upon every v-line refresh
-    // that is once every 0.108769 ms
     //write_log("[display] display cycle\n");
 
     if(display.lcdc & LCDC_ENABLE) {
-        display.ly++;
-        if(display.ly >= 154) display.ly = 0;
+        int mode = display.stat & 0xFC;
 
-        if(display.ly == display.lyc) {
-            write_log("[display] STAT interrupt\n");
+        if(mode == 1) {  // v-blank
+            int vblank_cycles = timing.current_cycles % 4570;
+            if(vblank_cycles >= 4560) {
+                // vblank is over; go back to mode zero
+                display.stat &= 0xFC;
+            } else if(vblank_cycles >= 456) {
+                // completed one line
+                display.ly++;
+
+                if(display.ly == display.lyc) {
+                    write_log("[display] STAT interrupt\n");
+                    display.stat |= 0x04;
+                } else {
+                    display.stat &= 0xFB;
+                }
+            }
+
+            return;
+        }
+
+        // any other mode
+        int cycles = timing.current_cycles % 466;
+        if(cycles <= 204) {
+            // mode 0
+            display.stat &= 0xFC;
+        } else if(cycles <= 285) {
+            // mode 2
+            display.stat &= 0xFC;
+            display.stat |= 2;
+        } else if(cycles <= 455) {
+            // mode 3
+            display.stat &= 0xFC;
+            display.stat |= 3;
+        } else if(cycles >= 456) {
+            // a line was completed
+            display.ly++;
+
+            if(display.ly == 144) {
+                // enter v-blank mode
+                display.stat &= 0xFC;
+                display.stat |= 1;
+            }
+
+            if(display.ly == display.lyc) {
+                write_log("[display] STAT interrupt\n");
+                display.stat |= 0x04;
+            } else {
+                display.stat &= 0xFB;
+            }
         }
     }
 }
