@@ -38,6 +38,7 @@ int mbc_type;
 #define WORK_RAM            (0)     // +0
 #define HIGH_RAM            (32768) // +32k assuming work RAM has a maximum of 8x4k banks
 #define CART_RAM            (HIGH_RAM+128)  // +128 because HRAM is exactly 127 bytes long but add one byte for alignment
+#define OAM                 (CART_RAM+1048576)  // +1 MB
 
 int rom_bank = 1;
 int cart_ram_bank = 0;
@@ -46,7 +47,7 @@ int is_cgb = 0;
 
 void memory_start() {
     // rom was already initialized in main.c
-    ram = calloc(1024, 1024 + 33);   // 1 MB is the maximum RAM size in MBC5 + 33 KB for WRAM + HRAM
+    ram = calloc(1024, 1058);   // 1 MB is the maximum RAM size in MBC5 + 33 KB for WRAM + HRAM
     if(!ram) {
         die(1, "unable to allocate RAM\n");
     }
@@ -271,8 +272,13 @@ void write_io(uint16_t addr, uint8_t byte) {
         return sound_write(addr, byte);
     default:
         write_log("[memory] unimplemented write to I/O port 0x%04X value 0x%02X\n", addr, byte);
-        die(-1, NULL);
+        return;
     }
+}
+
+inline void write_oam(uint16_t addr, uint8_t byte) {
+    uint8_t *bytes = (uint8_t *)ram;
+    bytes[OAM + addr] = byte;
 }
 
 void write_byte(uint16_t addr, uint8_t byte) {
@@ -307,8 +313,10 @@ void write_byte(uint16_t addr, uint8_t byte) {
     } else if(addr >= 0x8000 && addr <= 0x9FFF) {
         return vram_write(addr, byte);
     } else if(addr >= 0xFEA0 && addr <= 0xFEFF) {
-        write_log("[memory] undefined write at unusable address 0x%04X value 0x%02X, ignoring...\n", addr, byte);
+        //write_log("[memory] undefined write at unusable address 0x%04X value 0x%02X, ignoring...\n", addr, byte);
         return;
+    } else if(addr >= 0xFE00 && addr <= 0xFE9F) {
+        return write_oam(addr - 0xFE00, byte);        
     }
 
     write_log("[memory] unimplemented write at address 0x%04X value 0x%02X in MBC%d ROM\n", addr, byte, mbc_type);

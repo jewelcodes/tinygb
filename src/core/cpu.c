@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <ioports.h>
 
-#define DISASM
+//#define DISASM
 //#define THROTTLE_LOG
 
 #define disasm_log  write_log("[disasm] %16d %04X ", total_cycles, cpu.pc); write_log
@@ -857,6 +857,54 @@ void ldi_hl_a() {
     count_cycles(2);
 }
 
+void ldi_a_hl() {
+#ifdef DISASM
+    disasm_log("ldi a, (hl)\n");
+#endif
+
+    write_reg8(REG_A, read_byte(cpu.hl));
+
+    cpu.hl++;
+    cpu.pc++;
+    count_cycles(2);
+}
+
+void ldd_a_hl() {
+#ifdef DISASM
+    disasm_log("ldd a, (hl)\n");
+#endif
+
+    write_reg8(REG_A, read_byte(cpu.hl));
+
+    cpu.hl--;
+    cpu.pc++;
+    count_cycles(2);
+}
+
+void ldh_c_a() {
+#ifdef DISASM
+    disasm_log("ldh (c), a\n");
+#endif
+
+    uint16_t addr = 0xFF00 + read_reg8(REG_C);
+    write_byte(addr, read_reg8(REG_A));
+
+    cpu.pc++;
+    count_cycles(2);
+}
+
+void ldh_a_c() {
+#ifdef DISASM
+    disasm_log("ldh a, (c)\n");
+#endif
+
+    uint16_t addr = 0xFF00 + read_reg8(REG_C);
+    write_reg8(REG_A, read_byte(addr));
+
+    cpu.pc++;
+    count_cycles(2);
+}
+
 /* 
     EXTENDED OPCODES
     these are all prefixed with 0xCB first
@@ -896,13 +944,13 @@ void res_n_r() {
 // lookup tables
 void (*opcodes[256])() = {
     nop, ld_r_xxxx, ld_bc_a, inc_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x00
-    NULL, NULL, NULL, dec_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x08
+    NULL, NULL, NULL, dec_r16, inc_r, dec_r, ld_r_xx, NULL,  // 0x08
     NULL, ld_r_xxxx, NULL, inc_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x10
-    jr_e, NULL, NULL, dec_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x18
+    jr_e, NULL, NULL, dec_r16, inc_r, dec_r, ld_r_xx, NULL,  // 0x18
     jr_nz, ld_r_xxxx, ldi_hl_a, inc_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x20
-    jr_z, NULL, NULL, dec_r16, inc_r, dec_r, ld_r_xx, cpl,  // 0x28
+    jr_z, NULL, ldi_a_hl, dec_r16, inc_r, dec_r, ld_r_xx, cpl,  // 0x28
     NULL, ld_r_xxxx, ldd_hl_a, inc_r16, NULL, NULL, ld_hl_n, NULL,  // 0x30
-    NULL, NULL, NULL, dec_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x38
+    NULL, NULL, ldd_a_hl, dec_r16, inc_r, dec_r, ld_r_xx, NULL,  // 0x38
 
     // 8-bit loads
     ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_hl, ld_r_r,  // 0x40
@@ -926,9 +974,9 @@ void (*opcodes[256])() = {
     NULL, ret, NULL, ex_opcode, NULL, call_a16, NULL, NULL,  // 0xC8
     NULL, pop_r16, NULL, NULL, NULL, push_r16, NULL, NULL,  // 0xD0
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xD8
-    ldh_a8_a, pop_r16, NULL, NULL, NULL, push_r16, and_n, NULL,  // 0xE0
+    ldh_a8_a, pop_r16, ldh_c_a, NULL, NULL, push_r16, and_n, NULL,  // 0xE0
     NULL, NULL, ld_a16_a, NULL, NULL, NULL, NULL, NULL,  // 0xE8
-    ldh_a_a8, pop_af, NULL, di, NULL, push_af, NULL, NULL,  // 0xF0
+    ldh_a_a8, pop_af, ldh_a_c, di, NULL, push_af, NULL, NULL,  // 0xF0
     NULL, NULL, NULL, NULL, NULL, NULL, cp_xx, NULL,  // 0xF8
 };
 
