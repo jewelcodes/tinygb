@@ -157,7 +157,6 @@ void display_cycle() {
                 display.ly++;
 
                 if(display.ly == display.lyc) {
-                    write_log("[display] STAT interrupt\n");
                     display.stat |= 0x04;
                 } else {
                     display.stat &= 0xFB;
@@ -191,7 +190,6 @@ void display_cycle() {
             }
 
             if(display.ly == display.lyc) {
-                write_log("[display] STAT interrupt\n");
                 display.stat |= 0x04;
             } else {
                 display.stat &= 0xFB;

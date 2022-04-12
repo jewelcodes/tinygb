@@ -37,9 +37,13 @@ void open_log() {
 void die(int status, const char *msg, ...) {
     SDL_DestroyWindow(window);
     SDL_Quit();
-    free(rom);
 
-    if(ram) free(ram);
+    if(ram) {
+        cpu_log();
+        free(ram);
+    }
+
+    free(rom);
 
     if(!status || !msg) {
         if(log_file) fclose(log_file);
