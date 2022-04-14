@@ -9,6 +9,8 @@
 
 #define DISPLAY_LOG
 
+#define OAM_SIZE        256     // bytes
+
 display_t display;
 int display_cycles = 0;
 
@@ -104,6 +106,12 @@ void write_display_io(uint16_t addr, uint8_t byte) {
         write_log("[display] write to WY register value 0x%02X\n", byte);
 #endif
         display.wy = byte;
+        return;
+    case DMA:
+#ifdef DISPLAY_LOG
+        write_log("[display] write to DMA register value 0x%02X\n", byte);
+#endif
+        display.dma = byte;
         return;
     default:
         write_log("[memory] unimplemented write to I/O port 0x%04X value 0x%02X\n", addr, byte);
@@ -209,6 +217,21 @@ uint8_t read_display_io(uint16_t addr) {
 void display_cycle() {
     if(!(display.lcdc & LCDC_ENABLE)) return;
     display_cycles += timing.last_instruction_cycles;
+
+    // handle OAM DMA transfers if ongoing
+    if(display.dma) {
+        uint16_t dma_src = display.dma << 8;
+
+#ifdef DISPLAY_LOG
+        write_log("[display] DMA transfer from 0x%04X to sprite OAM region\n", dma_src);
+#endif
+
+        for(int i = 0; i < OAM_SIZE; i++) {
+            write_byte(0xFE00+i, read_byte(dma_src+i));
+        }
+
+        display.dma = 0;
+    }
 
     // mode 0 = 0 -> 203
     // mode 2 = 204 -> 283
