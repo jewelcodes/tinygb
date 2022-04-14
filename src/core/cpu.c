@@ -1008,6 +1008,39 @@ void ld_a_a16() {
     count_cycles(4);
 }
 
+void inc_hl() {
+#ifdef DISASM
+    disasm_log("inc hl\n");
+#endif
+
+    uint8_t n = read_byte(cpu.hl);
+    uint8_t old = n;
+    n++;
+
+    cpu.af &= (~FLAG_N);
+
+    if(!n) cpu.af |= FLAG_ZF;
+    else cpu.af &= (~FLAG_ZF);
+
+    if((n & 0x0F) < (old & 0x0F)) cpu.af |= FLAG_H;
+    else cpu.af &= (~FLAG_H);
+
+    write_byte(cpu.hl, n);
+
+    cpu.pc++;
+    count_cycles(3);
+}
+
+void reti() {
+#ifdef DISASM
+    disasm_log("reti\n");
+#endif
+
+    cpu.ime = 0;
+    cpu.pc = pop();
+    count_cycles(4);
+}
+
 /* 
     EXTENDED OPCODES
     these are all prefixed with 0xCB first
@@ -1052,7 +1085,7 @@ void (*opcodes[256])() = {
     jr_e, NULL, NULL, dec_r16, inc_r, dec_r, ld_r_xx, NULL,  // 0x18
     jr_nz, ld_r_xxxx, ldi_hl_a, inc_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x20
     jr_z, NULL, ldi_a_hl, dec_r16, inc_r, dec_r, ld_r_xx, cpl,  // 0x28
-    NULL, ld_r_xxxx, ldd_hl_a, inc_r16, NULL, NULL, ld_hl_n, NULL,  // 0x30
+    NULL, ld_r_xxxx, ldd_hl_a, inc_r16, inc_hl, NULL, ld_hl_n, NULL,  // 0x30
     NULL, NULL, ldd_a_hl, dec_r16, inc_r, dec_r, ld_r_xx, NULL,  // 0x38
 
     // 8-bit loads
@@ -1076,7 +1109,7 @@ void (*opcodes[256])() = {
     ret_nz, pop_r16, NULL, jp_nn, NULL, push_r16, NULL, NULL,  // 0xC0
     ret_z, ret, NULL, ex_opcode, NULL, call_a16, NULL, NULL,  // 0xC8
     NULL, pop_r16, NULL, NULL, NULL, push_r16, NULL, NULL,  // 0xD0
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xD8
+    NULL, reti, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xD8
     ldh_a8_a, pop_r16, ldh_c_a, NULL, NULL, push_r16, and_n, NULL,  // 0xE0
     NULL, NULL, ld_a16_a, NULL, NULL, NULL, NULL, NULL,  // 0xE8
     ldh_a_a8, pop_af, ldh_a_c, di, NULL, push_af, NULL, NULL,  // 0xF0
