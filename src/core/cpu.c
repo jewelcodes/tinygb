@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <ioports.h>
 
-//#define DISASM
+#define DISASM
 //#define THROTTLE_LOG
 
 #define disasm_log  write_log("[disasm] %16d %04X ", total_cycles, cpu.pc); write_log
@@ -107,7 +107,44 @@ void cpu_start() {
     //write_log("[cpu] cycles per v-line refresh = %d\n", timing.cpu_cycles_vline);
 }
 
+inline void push(uint16_t word) {
+    cpu.sp--;
+    write_byte(cpu.sp, (uint8_t)(word >> 8));
+    cpu.sp--;
+    write_byte(cpu.sp, (uint8_t)word & 0xFF);
+}
+
+inline uint16_t pop() {
+    uint16_t val;
+    val = read_byte(cpu.sp);
+    cpu.sp++;
+    val |= read_byte(cpu.sp) << 8;
+    cpu.sp++;
+
+    return val;
+}
+
 void cpu_cycle() {
+    // handle interrupts
+    uint8_t queued_ints = io_if & io_ie;
+    if(cpu.ime && queued_ints) {
+        for(int i = 0; i <= 4; i++) {
+            if(queued_ints & (1 << i)) {
+                // disable interrupts and call handler
+                io_if &= ~(1 << i);     // mark as handled
+
+#ifdef DISASM
+                disasm_log("<HANDLING INTERRUPT 0x%02X>\n", (i << 3) + 0x40);
+#endif
+
+                cpu.ime = 0;
+                push(cpu.pc);
+                cpu.pc = (i << 3) + 0x40;
+                break;
+            }
+        }
+    }
+
     uint8_t opcode = read_byte(cpu.pc);
 
     if(!opcodes[opcode]) {
@@ -222,23 +259,6 @@ uint16_t read_reg16(int reg) {
         dump_cpu();
         return 0xFFFF;    // unreachable
     }
-}
-
-inline void push(uint16_t word) {
-    cpu.sp--;
-    write_byte(cpu.sp, (uint8_t)(word >> 8));
-    cpu.sp--;
-    write_byte(cpu.sp, (uint8_t)word & 0xFF);
-}
-
-inline uint16_t pop() {
-    uint16_t val;
-    val = read_byte(cpu.sp);
-    cpu.sp++;
-    val |= read_byte(cpu.sp) << 8;
-    cpu.sp++;
-
-    return val;
 }
 
 /*
