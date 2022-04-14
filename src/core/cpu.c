@@ -938,6 +938,76 @@ void ei() {
     count_cycles(1);
 }
 
+void and_r() {
+    uint8_t opcode = read_byte(cpu.pc);
+    int reg = opcode & 7;
+
+#ifdef DISASM
+    disasm_log("and %s\n", registers[reg]);
+#endif
+
+    uint8_t val = read_reg8(reg);
+    uint8_t a = read_reg8(REG_A);
+
+    a &= val;
+
+    if(!a) cpu.af |= FLAG_ZF;
+    else cpu.af &= (~FLAG_ZF);
+
+    cpu.af &= ~(FLAG_N | FLAG_CY);
+    cpu.af |= FLAG_H;
+
+    write_reg8(REG_A, a);
+
+    cpu.pc++;
+    count_cycles(1);
+}
+
+void ret_nz() {
+#ifdef DISASM
+    disasm_log("ret nz\n");
+#endif
+
+    if(cpu.af & FLAG_ZF) {
+        // ZF set; condition false
+        cpu.pc++;
+        count_cycles(2);
+    } else {
+        // ZF clear; condition true
+        cpu.pc = pop();
+        count_cycles(5);
+    }
+}
+
+void ret_z() {
+#ifdef DISASM
+    disasm_log("ret z\n");
+#endif
+
+    if(cpu.af & FLAG_ZF) {
+        // ZF set; condition true
+        cpu.pc = pop();
+        count_cycles(5);
+    } else {
+        // ZF clear; condition false
+        cpu.pc++;
+        count_cycles(2);
+    }
+}
+
+void ld_a_a16() {
+    uint16_t addr = read_word(cpu.pc+1);
+
+#ifdef DISASM
+    disasm_log("ld a, (0x%04X)\n", addr);
+#endif
+
+    write_reg8(REG_A, read_byte(addr));
+
+    cpu.pc += 3;
+    count_cycles(4);
+}
+
 /* 
     EXTENDED OPCODES
     these are all prefixed with 0xCB first
@@ -999,18 +1069,18 @@ void (*opcodes[256])() = {
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0x88
     sub_r, sub_r, sub_r, sub_r, sub_r, sub_r, NULL, sub_r,  // 0x90
     sbc_a_r, sbc_a_r, sbc_a_r, sbc_a_r, sbc_a_r, sbc_a_r, NULL, sbc_a_r,  // 0x98
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xA0
+    and_r, and_r, and_r, and_r, and_r, and_r, NULL, and_r,  // 0xA0
     xor_r, xor_r, xor_r, xor_r, xor_r, xor_r, NULL, xor_r,  // 0xA8
     or_r, or_r, or_r, or_r, or_r, or_r, NULL, or_r,  // 0xB0
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xB8
-    NULL, pop_r16, NULL, jp_nn, NULL, push_r16, NULL, NULL,  // 0xC0
-    NULL, ret, NULL, ex_opcode, NULL, call_a16, NULL, NULL,  // 0xC8
+    ret_nz, pop_r16, NULL, jp_nn, NULL, push_r16, NULL, NULL,  // 0xC0
+    ret_z, ret, NULL, ex_opcode, NULL, call_a16, NULL, NULL,  // 0xC8
     NULL, pop_r16, NULL, NULL, NULL, push_r16, NULL, NULL,  // 0xD0
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xD8
     ldh_a8_a, pop_r16, ldh_c_a, NULL, NULL, push_r16, and_n, NULL,  // 0xE0
     NULL, NULL, ld_a16_a, NULL, NULL, NULL, NULL, NULL,  // 0xE8
     ldh_a_a8, pop_af, ldh_a_c, di, NULL, push_af, NULL, NULL,  // 0xF0
-    NULL, NULL, NULL, ei, NULL, NULL, cp_xx, NULL,  // 0xF8
+    NULL, NULL, ld_a_a16, ei, NULL, NULL, cp_xx, NULL,  // 0xF8
 };
 
 void (*ex_opcodes[256])() = {
