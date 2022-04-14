@@ -84,6 +84,7 @@ void cpu_start() {
     cpu.hl = 0x014D;
     cpu.sp = 0xFFFE;
     cpu.pc = 0x0100;    // skip the fixed rom and just exec the cartridge
+    cpu.ime = 0;
 
     io_if = 0;
     io_ie = 0;
@@ -907,6 +908,16 @@ void ldh_a_c() {
     count_cycles(2);
 }
 
+void ei() {
+#ifdef DISASM
+    disasm_log("ei\n");
+#endif
+
+    cpu.ime = 1;
+    cpu.pc++;
+    count_cycles(1);
+}
+
 /* 
     EXTENDED OPCODES
     these are all prefixed with 0xCB first
@@ -979,7 +990,7 @@ void (*opcodes[256])() = {
     ldh_a8_a, pop_r16, ldh_c_a, NULL, NULL, push_r16, and_n, NULL,  // 0xE0
     NULL, NULL, ld_a16_a, NULL, NULL, NULL, NULL, NULL,  // 0xE8
     ldh_a_a8, pop_af, ldh_a_c, di, NULL, push_af, NULL, NULL,  // 0xF0
-    NULL, NULL, NULL, NULL, NULL, NULL, cp_xx, NULL,  // 0xF8
+    NULL, NULL, NULL, ei, NULL, NULL, cp_xx, NULL,  // 0xF8
 };
 
 void (*ex_opcodes[256])() = {
