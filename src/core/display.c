@@ -10,6 +10,7 @@
 #define DISPLAY_LOG
 
 display_t display;
+int display_cycles = 0;
 
 void *vram;
 
@@ -141,7 +142,7 @@ uint8_t read_display_io(uint16_t addr) {
     return 0xFF;    // unreachable
 }
 
-void display_cycle() {
+/*void display_cycle() {
     //write_log("[display] display cycle\n");
 
     if(display.lcdc & LCDC_ENABLE) {
@@ -152,6 +153,13 @@ void display_cycle() {
             if(vblank_cycles >= 4560) {
                 // vblank is over; go back to mode zero
                 display.stat &= 0xFC;
+                display.ly = 0;
+
+                if(display.ly == display.lyc) {
+                    display.stat |= 0x04;
+                } else {
+                    display.stat &= 0xFB;
+                }
             } else if(vblank_cycles >= 456) {
                 // completed one line
                 display.ly++;
@@ -191,6 +199,71 @@ void display_cycle() {
 
             if(display.ly == display.lyc) {
                 display.stat |= 0x04;
+            } else {
+                display.stat &= 0xFB;
+            }
+        }
+    }
+}*/
+
+void display_cycle() {
+    if(!(display.lcdc & LCDC_ENABLE)) return;
+    display_cycles += timing.last_instruction_cycles;
+
+    // mode 0 = 0 -> 203
+    // mode 2 = 204 -> 283
+    // mode 3 = 284 -> 455
+
+    // mode 1 is a special case where it goes through all of these cycles 10 times
+    int mode = display.stat & 0xFC;
+    if(mode == 1) {  // vblank is a special case
+        if(display_cycles >= 456) {
+            display_cycles -= 456;  // dont lose any cycles
+
+            display.ly++;
+            if(display.ly >= 154) {
+                // vblank is now over
+                display.stat &= 0xFC;
+                display.ly = 0;
+            }
+
+            if(display.ly == display.lyc) {
+                // TODO: send STAT interrupt
+                display.stat |= 0x04;   // coincidence flag
+            } else {
+                display.stat &= 0xFB;
+            }
+        }
+    } else {
+        // all other modes
+        if(display_cycles <= 203) {
+            // mode 0
+            display.stat &= 0xFC;
+        } else if(display_cycles <= 283) {
+            // mode 2
+            display.stat &= 0xFC;
+            display.stat |= 2;
+        } else if(display_cycles <= 455) {
+            // mode 3
+            display.stat &= 0xFC;
+            display.stat |= 3;
+        } else if(display_cycles >= 456) {
+            // a horizontal line has been completed
+            display_cycles -= 456;  // dont lose any cycles
+
+            display.ly++;
+            if(display.ly >= 143) {
+                // begin vsync (mode 1)
+                display.stat &= 0xFC;
+                display.stat |= 1;
+            } else {
+                // return to mode zero
+                display.stat &= 0xFC;
+            }
+
+            if(display.ly == display.lyc) {
+                // TODO: send STAT interrupt
+                display.stat |= 0x04;   // coincidence flag
             } else {
                 display.stat &= 0xFB;
             }

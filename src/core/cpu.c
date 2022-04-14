@@ -44,6 +44,7 @@ int cpu_speed;
 
 void count_cycles(int n) {
     n++;    // all cpu cycles are practically always one cycle longer
+    timing.last_instruction_cycles = n;
     total_cycles += n;
     cycles += n;
 

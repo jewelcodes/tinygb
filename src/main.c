@@ -126,12 +126,11 @@ int main(int argc, char **argv) {
 
         */
 
-       for(timing.current_cycles = 0; timing.current_cycles < timing.main_cycles; ) {
-           cpu_cycle();
-           display_cycle();
-
-            if(timing.current_cycles >= timing.cpu_cycles_timer) timer_cycle();
-       }
+        for(timing.current_cycles = 0; timing.current_cycles < timing.main_cycles; ) {
+            cpu_cycle();
+            display_cycle();
+            timer_cycle();
+        }
     }
 
     die(0, "");

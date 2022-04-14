@@ -43,6 +43,7 @@ typedef struct {
     int cpu_cycles_ms, cpu_cycles_vline, cpu_cycles_timer;
     int current_cycles;
     int main_cycles;    // how many times we should cycle in main()
+    int last_instruction_cycles;
 } timing_t;
 
 typedef struct {

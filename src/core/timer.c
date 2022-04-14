@@ -10,6 +10,7 @@
 #define TIMER_LOG
 
 timer_regs_t timer;
+int timer_cycles = 0;
 
 int timer_freqs[4] = {
     4096, 262144, 65536, 16384  // Hz
@@ -78,7 +79,7 @@ void timer_write(uint16_t addr, uint8_t byte) {
     }
 }
 
-void timer_cycle() {
+/*void timer_cycle() {
 #ifdef TIMER_LOG
     //write_log("[timer] timer cycle\n");
 #endif
@@ -88,6 +89,20 @@ void timer_cycle() {
         if(!timer.tima) {
             timer.tima = timer.tma;
             //write_log("[timer] timer interrupt\n");
+        }
+    }
+}*/
+
+void timer_cycle() {
+    if(!(timer.tac & TAC_START)) return;
+
+    timer_cycles += timing.last_instruction_cycles;
+    if(timer_cycles >= timing.cpu_cycles_timer) {
+        timer_cycles -= timing.cpu_cycles_timer;
+        timer.tima++;
+        if(!timer.tima) {
+            timer.tima = timer.tma;
+            // TODO: timer interrupt
         }
     }
 }
