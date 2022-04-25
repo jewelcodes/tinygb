@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <ioports.h>
 
+#define INT_LOG
 //#define DISASM
 //#define THROTTLE_LOG
 
@@ -133,7 +134,7 @@ void cpu_cycle() {
                 // disable interrupts and call handler
                 io_if &= ~(1 << i);     // mark as handled
 
-#ifdef DISASM
+#ifdef INT_LOG
                 disasm_log("<HANDLING INTERRUPT 0x%02X>\n", (i << 3) + 0x40);
 #endif
 
