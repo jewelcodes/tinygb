@@ -31,3 +31,11 @@ uint8_t ie_read() {
 uint8_t if_read() {
     return io_if;
 }
+
+void send_interrupt(int n) {
+#ifdef INTERRUPTS_LOG
+    //write_log("[int] sending interrupt 0x%02X\n", (n << 3) + 0x40);
+#endif
+
+    io_if |= (1 << n);
+}

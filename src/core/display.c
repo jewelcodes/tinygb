@@ -275,10 +275,12 @@ void display_cycle() {
             display_cycles -= 456;  // dont lose any cycles
 
             display.ly++;
-            if(display.ly >= 143) {
-                // begin vsync (mode 1)
+            if(display.ly >= 144) {
+                // begin vblank (mode 1)
                 display.stat &= 0xFC;
                 display.stat |= 1;
+
+                send_interrupt(0);
             } else {
                 // return to mode zero
                 display.stat &= 0xFC;

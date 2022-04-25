@@ -85,6 +85,7 @@ void write_byte(uint16_t, uint8_t);
 // interrupts
 uint8_t if_read();
 uint8_t ie_read();
+void send_interrupt(int);
 
 // display
 void display_write(uint16_t, uint8_t);
