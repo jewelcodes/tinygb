@@ -1077,6 +1077,31 @@ void res_n_r() {
     count_cycles(2);
 }
 
+void swap_r() {
+    uint8_t opcode = read_byte(cpu.pc+1);
+
+    int reg = opcode & 7;
+
+#ifdef DISASM
+    disasm_log("swap %s\n", registers[reg]);
+#endif
+
+    uint8_t r = read_reg8(reg);
+
+    uint8_t lo, hi;
+    lo = r & 0x0F;
+    hi = (r >> 4) & 0x0F;
+
+    uint8_t new_r = (lo << 4) | hi;
+    write_reg8(reg, new_r);
+
+    if(!new_r) cpu.af |= FLAG_ZF;
+    cpu.af &= ~(FLAG_N | FLAG_H | FLAG_CY);
+
+    cpu.pc += 2;
+    count_cycles(2);
+}
+
 // lookup tables
 void (*opcodes[256])() = {
     nop, ld_r_xxxx, ld_bc_a, inc_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x00
@@ -1123,7 +1148,7 @@ void (*ex_opcodes[256])() = {
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x18
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x20
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x28
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x30
+    swap_r, swap_r, swap_r, swap_r, swap_r, swap_r, NULL, swap_r,     // 0x30
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x38
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x40
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x48
