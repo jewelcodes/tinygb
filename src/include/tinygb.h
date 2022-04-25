@@ -103,3 +103,7 @@ void timer_cycle();
 
 // sound
 void sound_write(uint16_t, uint8_t);
+
+// joypad
+void joypad_write(uint16_t, uint8_t);
+uint8_t joypad_read(uint16_t);

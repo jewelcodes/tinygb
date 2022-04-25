@@ -151,6 +151,8 @@ uint8_t read_io(uint16_t addr) {
     case HDMA4:
     case HDMA5:
         return read_display_io(addr);
+    case P1:
+        return joypad_read(addr);
     default:
         write_log("[memory] unimplemented read from IO port 0x%04X\n", addr);
         die(-1, NULL);
@@ -270,6 +272,8 @@ void write_io(uint16_t addr, uint8_t byte) {
     case WAV14:
     case WAV15:
         return sound_write(addr, byte);
+    case P1:
+        return joypad_write(addr, byte);
     default:
         write_log("[memory] unimplemented write to I/O port 0x%04X value 0x%02X\n", addr, byte);
         return;
