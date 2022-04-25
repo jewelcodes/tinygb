@@ -150,7 +150,7 @@ uint8_t read_io(uint16_t addr) {
     case HDMA3:
     case HDMA4:
     case HDMA5:
-        return read_display_io(addr);
+        return display_read(addr);
     case P1:
         return joypad_read(addr);
     default:
@@ -224,7 +224,7 @@ void write_io(uint16_t addr, uint8_t byte) {
     case HDMA3:
     case HDMA4:
     case HDMA5:
-        return write_display_io(addr, byte);
+        return display_write(addr, byte);
     case SB:
         return sb_write(byte);
     case SC:

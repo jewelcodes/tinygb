@@ -87,8 +87,8 @@ uint8_t if_read();
 uint8_t ie_read();
 
 // display
-void write_display_io(uint16_t, uint8_t);
-uint8_t read_display_io(uint16_t);
+void display_write(uint16_t, uint8_t);
+uint8_t display_read(uint16_t);
 void display_cycle();
 void vram_write(uint16_t, uint8_t);
 uint8_t vram_read(uint16_t);

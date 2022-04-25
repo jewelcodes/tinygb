@@ -37,7 +37,7 @@ void display_start() {
     write_log("[display] initialized display\n");
 }
 
-void write_display_io(uint16_t addr, uint8_t byte) {
+void display_write(uint16_t addr, uint8_t byte) {
     switch(addr) {
     case LCDC:
 #ifdef DISPLAY_LOG
@@ -119,7 +119,7 @@ void write_display_io(uint16_t addr, uint8_t byte) {
     }
 }
 
-uint8_t read_display_io(uint16_t addr) {
+uint8_t display_read(uint16_t addr) {
     switch(addr) {
     case LCDC:
         return display.lcdc;
