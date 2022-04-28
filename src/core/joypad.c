@@ -38,7 +38,7 @@ void joypad_write(uint16_t addr, uint8_t byte) {
         selection = 1;
     } else {
         // undefined but we'll just use buttons
-        write_log("[joypad] undefined write value 0x%02X, ignoring...\n", ~byte);
+        write_log("[joypad] undefined write value 0x%02X, ignoring...\n", (~byte) & 0xFF);
         selection = 0;
     }
 }
