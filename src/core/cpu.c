@@ -25,7 +25,7 @@
 #define REG_HL      2
 #define REG_SP      3
 
-#define THROTTLE_THRESHOLD  2.0    // ms
+#define THROTTLE_THRESHOLD  70      // ms
 
 const char *registers[] = {
     "b", "c", "d", "e", "h", "l", "UNDEFINED", "a"
@@ -42,8 +42,9 @@ int total_cycles = 0;
 void (*opcodes[256])();
 void (*ex_opcodes[256])();
 int cpu_speed;
+int cycles_per_throttle;
 
-void count_cycles(int n) {
+/*void count_cycles(int n) {
     n++;    // all cpu cycles are practically always one cycle longer
     timing.last_instruction_cycles = n;
     total_cycles += n;
@@ -63,13 +64,30 @@ void count_cycles(int n) {
         cycles_time = 0.0;
         cycles = 0;
     }
+}*/
+
+void count_cycles(int n) {
+    n++;    // all cpu cycles are practically always one cycle longer
+    timing.last_instruction_cycles = n;
+    total_cycles += n;
+    cycles += n;
+    timing.current_cycles += n;
+
+    if(cycles >= cycles_per_throttle) {
+#ifdef THROTTLE_LOG
+        write_log("[cpu] accumulated %d cycles, delaying %d ms\n", cycles, (int)cycles_time);
+#endif
+
+        SDL_Delay(THROTTLE_THRESHOLD);
+        cycles = 0;
+    }
 }
 
 void cpu_log() {
     write_log(" AF = 0x%04X   BC = 0x%04X   DE = 0x%04X\n", cpu.af, cpu.bc, cpu.de);
     write_log(" HL = 0x%04X   SP = 0x%04X   PC = 0x%04X\n", cpu.hl, cpu.sp, cpu.pc);
     write_log(" executed total cycles = %d\n", total_cycles);
-    write_log(" time until next CPU throttle = %lf ms\n", THROTTLE_THRESHOLD - cycles_time);
+    //write_log(" time until next CPU throttle = %lf ms\n", THROTTLE_THRESHOLD - cycles_time);
 }
 
 void dump_cpu() {
@@ -97,6 +115,9 @@ void cpu_start() {
     }
 
     write_log("[cpu] started with speed %lf MHz\n", (double)cpu_speed/1000000);
+
+    cycles_per_throttle = (cpu_speed * THROTTLE_THRESHOLD)/1000;
+    write_log("[cpu] throttling every %d cycles\n", cycles_per_throttle);
 
     // determine values that will be used to keep track of timing
     timing.current_cycles = 0;
