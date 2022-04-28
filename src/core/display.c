@@ -15,6 +15,7 @@ display_t display;
 int display_cycles = 0;
 
 void *vram;
+uint32_t *framebuffer;
 
 void display_start() {
     memset(&display, 0, sizeof(display_t));
@@ -32,6 +33,11 @@ void display_start() {
     vram = calloc(1, 16384);    // 8 KB for original gb, 2x8 KB for CGB
     if(!vram) {
         die(-1, "unable to allocate memory for VRAM\n");
+    }
+
+    framebuffer = calloc(GB_WIDTH*GB_HEIGHT, 4);
+    if(!framebuffer) {
+        die(-1, "unable to allocate memory for framebuffer\n");
     }
 
     write_log("[display] initialized display\n");
@@ -238,8 +244,10 @@ void display_cycle() {
     // mode 3 = 284 -> 455
 
     // mode 1 is a special case where it goes through all of these cycles 10 times
-    int mode = display.stat & 0xFC;
+    uint8_t mode = display.stat & 3;
+    //write_log("[display] cycles = %d, mode = %d, LY = %d, STAT = 0x%02X\n", display_cycles, mode, display.ly, display.stat);
     if(mode == 1) {  // vblank is a special case
+        //write_log("[display] in vblank, io_if = 0x%02X\n", io_if);
         if(display_cycles >= 456) {
             display_cycles -= 456;  // dont lose any cycles
 
@@ -279,6 +287,8 @@ void display_cycle() {
                 // begin vblank (mode 1)
                 display.stat &= 0xFC;
                 display.stat |= 1;
+
+                //write_log("[display] entering vblank state, STAT = 0x%02X\n", display.stat);
 
                 send_interrupt(0);
             } else {
