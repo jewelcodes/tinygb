@@ -1180,11 +1180,11 @@ void ld_a_de() {
     count_cycles(2);
 }
 
-void jr_z_a16() {
+void jp_z_a16() {
     uint16_t new_pc = read_word(cpu.pc+1);
 
 #ifdef DISASM
-    disasm_log("jr z 0x%04X\n", new_pc);
+    disasm_log("jp z 0x%04X\n", new_pc);
 #endif
 
     if(cpu.af & FLAG_ZF) {
@@ -1219,6 +1219,85 @@ void dec_hl() {
 
     cpu.pc++;
     count_cycles(3);
+}
+
+void ld_hl_r() {
+    uint8_t opcode = read_byte(cpu.pc);
+    int reg = opcode & 7;
+
+#ifdef DISASM
+    disasm_log("ld (hl), %s\n", registers[reg]);
+#endif
+
+    write_byte(cpu.hl, read_reg8(reg));
+
+    cpu.pc++;
+    count_cycles(2);
+}
+
+void jp_nz_a16() {
+    uint16_t new_pc = read_word(cpu.pc+1);
+
+#ifdef DISASM
+    disasm_log("jp nz 0x%04X\n", new_pc);
+#endif
+
+    if(!(cpu.af & FLAG_ZF)) {
+        // ZF clear, condition true
+        cpu.pc = new_pc;
+        count_cycles(4);
+    } else {
+        // ZF set, condition false
+        cpu.pc += 3;
+        count_cycles(3);
+    }
+}
+
+void add_d8() {
+    uint8_t d8 = read_byte(cpu.pc+1);
+
+#ifdef DISASM
+    disasm_log("add 0x%02X\n", d8);
+#endif
+
+    uint8_t a = read_reg8(REG_A);
+    uint8_t new = a + d8;
+
+    cpu.af &= (~FLAG_N);
+
+    if(!new) cpu.af |= FLAG_ZF;
+    else cpu.af &= (~FLAG_ZF);
+
+    if((new & 0x0F) < (a & 0x0F)) cpu.af |= FLAG_H;
+    else cpu.af &= (~FLAG_H);
+
+    if(new < a) cpu.af |= FLAG_CY;
+    else cpu.af &= (~FLAG_CY);
+
+    write_reg8(REG_A, new);
+
+    cpu.pc += 2;
+    count_cycles(2);
+}
+
+void xor_d8() {
+    uint8_t d8 = read_byte(cpu.pc+1);
+
+#ifdef DISASM
+    disasm_log("xor 0x%02X\n", d8);
+#endif
+
+    uint8_t a = read_reg8(REG_A);
+    a ^= d8;
+    cpu.af &= ~(FLAG_N | FLAG_H | FLAG_CY);
+
+    if(!a) cpu.af |= FLAG_ZF;
+    else cpu.af &= (~FLAG_ZF);
+
+    write_reg8(REG_A, a);
+
+    cpu.pc += 2;
+    count_cycles(2);
 }
 
 /* 
@@ -1282,6 +1361,70 @@ void swap_r() {
     count_cycles(2);
 }
 
+void sla_r() {
+    uint8_t opcode = read_byte(cpu.pc+1);
+    int reg = opcode & 7;
+
+#ifdef DISASM
+    disasm_log("sla %s\n", registers[reg]);
+#endif
+
+    cpu.af &= ~(FLAG_H | FLAG_N);
+
+    uint8_t r = read_reg8(reg);
+    if(r & 0x80) cpu.af |= FLAG_CY;
+    else cpu.af &= (~FLAG_CY);
+
+    r <<= 1;
+
+    if(!r) cpu.af |= FLAG_ZF;
+    else cpu.af &= (~FLAG_ZF);
+
+    write_reg8(reg, r);
+
+    cpu.pc += 2;
+    count_cycles(2);
+}
+
+void bit_n_hl() {
+    uint8_t opcode = read_byte(cpu.pc+1);
+    int n = (opcode >> 3) & 7;
+
+#ifdef DISASM
+    disasm_log("bit %d, (hl)\n", n);
+#endif
+
+    cpu.af &= (~FLAG_N);
+    cpu.af |= FLAG_H;
+
+    uint8_t byte = read_byte(cpu.hl);
+    if(byte & (1 << n)) cpu.af |= FLAG_ZF;
+    else cpu.af &= (~FLAG_ZF);
+
+    cpu.pc += 2;
+    count_cycles(3);
+}
+
+void bit_n_r() {
+    uint8_t opcode = read_byte(cpu.pc+1);
+    int n = (opcode >> 3) & 7;
+    int reg = opcode & 7;
+
+#ifdef DISASM
+    disasm_log("bit %d, %s\n", n, registers[reg]);
+#endif
+
+    cpu.af &= (~FLAG_N);
+    cpu.af |= FLAG_H;
+
+    uint8_t byte = read_reg8(reg);
+    if(byte & (1 << n)) cpu.af |= FLAG_ZF;
+    else cpu.af &= (~FLAG_ZF);
+
+    cpu.pc += 2;
+    count_cycles(2);
+}
+
 // lookup tables
 void (*opcodes[256])() = {
     nop, ld_r_xxxx, ld_bc_a, inc_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x00
@@ -1300,7 +1443,7 @@ void (*opcodes[256])() = {
     ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_hl, ld_r_r,  // 0x58
     ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_hl, ld_r_r,  // 0x60
     ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_hl, ld_r_r,  // 0x68
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0x70
+    ld_hl_r, ld_hl_r, ld_hl_r, ld_hl_r, ld_hl_r, ld_hl_r, NULL, ld_hl_r,  // 0x70
     ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_hl, ld_r_r,  // 0x78
 
     add_r, add_r, add_r, add_r, add_r, add_r, NULL, add_r,  // 0x80
@@ -1311,12 +1454,12 @@ void (*opcodes[256])() = {
     xor_r, xor_r, xor_r, xor_r, xor_r, xor_r, NULL, xor_r,  // 0xA8
     or_r, or_r, or_r, or_r, or_r, or_r, NULL, or_r,  // 0xB0
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xB8
-    ret_nz, pop_r16, NULL, jp_nn, NULL, push_r16, NULL, NULL,  // 0xC0
-    ret_z, ret, jr_z_a16, ex_opcode, NULL, call_a16, NULL, NULL,  // 0xC8
+    ret_nz, pop_r16, jp_nz_a16, jp_nn, NULL, push_r16, add_d8, NULL,  // 0xC0
+    ret_z, ret, jp_z_a16, ex_opcode, NULL, call_a16, NULL, NULL,  // 0xC8
     NULL, pop_r16, NULL, NULL, NULL, push_r16, NULL, NULL,  // 0xD0
     NULL, reti, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xD8
     ldh_a8_a, pop_r16, ldh_c_a, NULL, NULL, push_r16, and_n, NULL,  // 0xE0
-    NULL, jp_hl, ld_a16_a, NULL, NULL, NULL, NULL, rst,  // 0xE8
+    NULL, jp_hl, ld_a16_a, NULL, NULL, NULL, xor_d8, rst,  // 0xE8
     ldh_a_a8, pop_af, ldh_a_c, di, NULL, push_af, NULL, NULL,  // 0xF0
     NULL, NULL, ld_a_a16, ei, NULL, NULL, cp_xx, NULL,  // 0xF8
 };
@@ -1326,18 +1469,20 @@ void (*ex_opcodes[256])() = {
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x08
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x10
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x18
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x20
+    sla_r, sla_r, sla_r, sla_r, sla_r, sla_r, NULL, sla_r,     // 0x20
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x28
     swap_r, swap_r, swap_r, swap_r, swap_r, swap_r, NULL, swap_r,     // 0x30
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x38
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x40
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x48
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x50
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x58
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x60
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x68
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x70
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x78
+
+    bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_hl, bit_n_r,     // 0x40
+    bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_hl, bit_n_r,     // 0x48
+    bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_hl, bit_n_r,     // 0x50
+    bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_hl, bit_n_r,     // 0x58
+    bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_hl, bit_n_r,     // 0x60
+    bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_hl, bit_n_r,     // 0x68
+    bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_hl, bit_n_r,     // 0x70
+    bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_hl, bit_n_r,     // 0x78
+
     res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, NULL, res_n_r,     // 0x80
     res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, NULL, res_n_r,     // 0x88
     res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, NULL, res_n_r,     // 0x90
@@ -1346,6 +1491,7 @@ void (*ex_opcodes[256])() = {
     res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, NULL, res_n_r,     // 0xA8
     res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, NULL, res_n_r,     // 0xB0
     res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, NULL, res_n_r,     // 0xB8
+
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0xC0
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0xC8
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0xD0
