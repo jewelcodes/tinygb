@@ -11,6 +11,7 @@ long rom_size;
 int scaling = 4;
 
 SDL_Window *window;
+SDL_Surface *surface;
 timing_t timing;
 
 int main(int argc, char **argv) {
@@ -64,6 +65,22 @@ int main(int argc, char **argv) {
         free(rom);
         SDL_Quit();
         return -1;
+    }
+
+    surface = SDL_GetWindowSurface(window);
+
+    write_log("SDL pixel format: %s\n", SDL_GetPixelFormatName(surface->format->format));
+    write_log("SDL bits per pixel: %d\n", surface->format->BitsPerPixel);
+    write_log("SDL bytes per pixel: %d\n", surface->format->BytesPerPixel);
+    write_log("SDL Rmask: 0x%06X\n", surface->format->Rmask);
+    write_log("SDL Gmask: 0x%06X\n", surface->format->Gmask);
+    write_log("SDL Bmask: 0x%06X\n", surface->format->Bmask);
+    write_log("SDL Amask: 0x%08X\n", surface->format->Amask);
+
+    // disgustingly lazy thing rn
+    if(surface->format->BytesPerPixel != 3 && surface->format->BytesPerPixel != 4 &&
+        surface->format->Rmask != 0xFF0000 && surface->format->Gmask != 0xFF00 && surface->format->Bmask != 0xFF) {
+        die(-1, "unsupported surface format; only RGB 24-bpp or 32-bpp are supported\n");
     }
 
     SDL_UpdateWindowSurface(window);
@@ -131,6 +148,9 @@ int main(int argc, char **argv) {
             display_cycle();
             timer_cycle();
         }
+
+        // one frame was drawn by here
+        SDL_UpdateWindowSurface(window);
     }
 
     die(0, "");

@@ -62,6 +62,7 @@ extern int is_cgb;
 extern int cpu_speed;
 
 extern SDL_Window *window;
+extern SDL_Surface *surface;
 extern timing_t timing;
 
 void open_log();
