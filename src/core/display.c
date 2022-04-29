@@ -37,7 +37,11 @@ display_t display;
 int display_cycles = 0;
 
 void *vram;
-uint32_t *framebuffer;
+uint32_t *framebuffer, *scaled_framebuffer;
+
+extern int scaling;
+
+int scaled_w, scaled_h;
 
 void display_start() {
     memset(&display, 0, sizeof(display_t));
@@ -52,13 +56,19 @@ void display_start() {
     display.wy = 0;
     display.wx = 0;
 
+    scaled_w = scaling*GB_WIDTH;
+    scaled_h = scaling*GB_HEIGHT;
+
     vram = calloc(1, 16384);    // 8 KB for original gb, 2x8 KB for CGB
     if(!vram) {
         die(-1, "unable to allocate memory for VRAM\n");
     }
 
     framebuffer = calloc(GB_WIDTH*GB_HEIGHT, 4);
-    if(!framebuffer) {
+    if(scaling != 1) scaled_framebuffer = calloc(GB_WIDTH*GB_HEIGHT, 4*scaling*scaling*4);
+    else scaled_framebuffer = framebuffer;
+
+    if(!framebuffer || !scaled_framebuffer) {
         die(-1, "unable to allocate memory for framebuffer\n");
     }
 
@@ -178,69 +188,39 @@ uint8_t display_read(uint16_t addr) {
     return 0xFF;    // unreachable
 }
 
-/*void display_cycle() {
-    //write_log("[display] display cycle\n");
+inline void scale_xline(uint32_t *new, uint32_t *old) {
+    for(int i = 0; i < scaled_w; i++) {
+        //printf("copy new X %d, old X %d\n", i, i/scaling);
+        new[i] = old[(i/scaling)];
+        //new[i] = 0xFFFFFF;
 
-    if(display.lcdc & LCDC_ENABLE) {
-        int mode = display.stat & 0xFC;
-
-        if(mode == 1) {  // v-blank
-            int vblank_cycles = timing.current_cycles % 4570;
-            if(vblank_cycles >= 4560) {
-                // vblank is over; go back to mode zero
-                display.stat &= 0xFC;
-                display.ly = 0;
-
-                if(display.ly == display.lyc) {
-                    display.stat |= 0x04;
-                } else {
-                    display.stat &= 0xFB;
-                }
-            } else if(vblank_cycles >= 456) {
-                // completed one line
-                display.ly++;
-
-                if(display.ly == display.lyc) {
-                    display.stat |= 0x04;
-                } else {
-                    display.stat &= 0xFB;
-                }
-            }
-
-            return;
-        }
-
-        // any other mode
-        int cycles = timing.current_cycles % 466;
-        if(cycles <= 204) {
-            // mode 0
-            display.stat &= 0xFC;
-        } else if(cycles <= 285) {
-            // mode 2
-            display.stat &= 0xFC;
-            display.stat |= 2;
-        } else if(cycles <= 455) {
-            // mode 3
-            display.stat &= 0xFC;
-            display.stat |= 3;
-        } else if(cycles >= 456) {
-            // a line was completed
-            display.ly++;
-
-            if(display.ly == 144) {
-                // enter v-blank mode
-                display.stat &= 0xFC;
-                display.stat |= 1;
-            }
-
-            if(display.ly == display.lyc) {
-                display.stat |= 0x04;
-            } else {
-                display.stat &= 0xFB;
-            }
-        }
+        //printf("old x = %d, old y = %d\n", i/scaling, y);
     }
-}*/
+}
+
+void update_framebuffer() {
+    // scale up the buffer
+    for(int y = 0; y < scaled_h; y++) {
+        uint32_t *dst = scaled_framebuffer + (y * scaled_w);
+        uint32_t *src = framebuffer + ((y / scaling) * GB_WIDTH);
+
+        scale_xline(dst, src);
+    }
+
+    // write it to the screen
+    if(surface->format->BytesPerPixel == 4) {
+        // 32-bpp
+        for(int i = 0; i < scaled_h; i++) {
+            //void *src = (void *)(scaled_framebuffer + (i * GB_WIDTH * 4));
+            //void *src = (void *)(scaled_framebuffer + (i * scaled_w));
+            void *src = (void *)(scaled_framebuffer + (i * scaled_w));
+            void *dst = (void *)(surface->pixels + (i * surface->pitch));
+            memcpy(dst, src, scaled_w*4);
+        }
+    } else {
+        die(-1, "unimplemented non 32-bpp surfaces\n");
+    }
+}
 
 void display_cycle() {
     if(!(display.lcdc & LCDC_ENABLE)) return;
@@ -313,6 +293,9 @@ void display_cycle() {
                 //write_log("[display] entering vblank state, STAT = 0x%02X\n", display.stat);
 
                 send_interrupt(0);
+
+                // update the actual screen
+                update_framebuffer();
             } else {
                 // return to mode zero
                 display.stat &= 0xFC;
