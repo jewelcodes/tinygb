@@ -9,6 +9,28 @@
 
 #define DISPLAY_LOG
 
+/*
+
+Notes to self regarding how the display works:
+- Vertical line starts at mode 2 (reading OAM)
+- Next mode is mode 3 (reading both OAM and VRAM)
+- Next mode is mode 0 (H-blank, not reading anything)
+- After 144 lines are completed, enter mode 1 (V-blank)
+- V-blank lasts for 10 "lines" in which nothing is being read
+
+- The program does not write direct pixels to the screen, instead it has tile
+  data stored in VRAM. The background is drawn as a map of tiles, and the
+  window is drawn on top of the background also as a map of tiles, and finally
+  the sprites (OAM) are drawn as a final map.
+
+- Background maps are mandatory, but the window and sprites can be switched
+  on/off.
+
+- Mode (2 --> 3 --> 0) 144 times
+- Mode (1) 10 times
+
+ */
+
 #define OAM_SIZE        256     // bytes
 
 display_t display;
@@ -239,9 +261,9 @@ void display_cycle() {
         display.dma = 0;
     }
 
-    // mode 0 = 0 -> 203
-    // mode 2 = 204 -> 283
-    // mode 3 = 284 -> 455
+    // mode 2 = 0 -> 79
+    // mode 3 = 80 -> 251
+    // mode 0 = 252 -> 455
 
     // mode 1 is a special case where it goes through all of these cycles 10 times
     uint8_t mode = display.stat & 3;
@@ -267,17 +289,17 @@ void display_cycle() {
         }
     } else {
         // all other modes
-        if(display_cycles <= 203) {
-            // mode 0
-            display.stat &= 0xFC;
-        } else if(display_cycles <= 283) {
-            // mode 2
+        if(display_cycles <= 79) {
+            // mode 2 -- reading OAM
             display.stat &= 0xFC;
             display.stat |= 2;
-        } else if(display_cycles <= 455) {
-            // mode 3
+        } else if(display_cycles <= 251) {
+            // mode 3 -- reading OAM and VRAM
             display.stat &= 0xFC;
             display.stat |= 3;
+        } else if(display_cycles <= 455) {
+            // mode 0
+            display.stat &= 0xFC;
         } else if(display_cycles >= 456) {
             // a horizontal line has been completed
             display_cycles -= 456;  // dont lose any cycles
