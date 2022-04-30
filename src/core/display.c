@@ -414,10 +414,11 @@ void display_cycle() {
 }
 
 void vram_write(uint16_t addr, uint8_t byte) {
+    //write_log("[display] write to VRAM 0x%04X value 0x%02X\n", addr, byte);
     addr -= 0x8000;
 
     uint8_t *ptr = (uint8_t *)vram + addr;
     ptr += (8192 * display.vbk);    // for CGB banking
 
-    *ptr = addr;
+    *ptr = byte;
 }
