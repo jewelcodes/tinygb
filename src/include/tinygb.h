@@ -38,6 +38,7 @@
 #define TOTAL_REFRESH_TIME      16.7504     // ms
 #define REFRESH_TIME_LINE       0.108769    // ms
 #define VSYNC_PAUSE             1.08769     // ms
+#define OAM_SIZE                160         // bytes
 
 typedef struct {
     int cpu_cycles_ms, cpu_cycles_vline, cpu_cycles_timer;

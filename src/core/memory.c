@@ -328,5 +328,5 @@ void write_byte(uint16_t addr, uint8_t byte) {
 }
 
 inline void copy_oam(void *dst) {
-    memcpy(dst, ram+OAM, 256);
+    memcpy(dst, ram+OAM, OAM_SIZE);
 }

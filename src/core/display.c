@@ -31,8 +31,6 @@ Notes to self regarding how the display works:
 
  */
 
-#define OAM_SIZE        256     // bytes
-
 display_t display;
 int display_cycles = 0;
 
