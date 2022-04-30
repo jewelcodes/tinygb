@@ -40,7 +40,30 @@ void die(int status, const char *msg, ...) {
 
     if(ram) {
         cpu_log();
+
+        FILE *memdump = fopen("memory.bin", "w");
+        if(!memdump) {
+            write_log("failed to open memory.bin for writing\n");
+        } else {
+            fwrite(ram, 1024, 1058, memdump);
+            fflush(memdump);
+            fclose(memdump);
+        }
+
         free(ram);
+    }
+
+    if(vram) {
+        FILE *vramdump = fopen("vram.bin", "w");
+        if(!vramdump) {
+            write_log("failed to open vram.bin for writing\n");
+        } else {
+            fwrite(vram, 1, 16384, vramdump);
+            fflush(vramdump);
+            fclose(vramdump);
+        }
+
+        free(vram);
     }
 
     free(rom);

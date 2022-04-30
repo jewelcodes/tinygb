@@ -56,7 +56,7 @@ typedef struct {
 #define FLAG_CY     0x10
 
 extern long rom_size;
-extern void *rom, *ram;
+extern void *rom, *ram, *vram;
 extern int is_cgb;
 
 extern int cpu_speed;
