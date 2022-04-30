@@ -236,7 +236,7 @@ void plot_bg_tile(int x, int y, uint8_t tile, uint8_t *tile_data) {
     int yp = y * 8;
 
     uint32_t color;
-    uint8_t data;
+    uint8_t data, color_index;
     uint8_t *ptr;
 
     /*write_log("[display] rendering bg tile %d, data bytes ", tile);
@@ -250,11 +250,14 @@ void plot_bg_tile(int x, int y, uint8_t tile, uint8_t *tile_data) {
     // 8x8 tiles
     for(int i = 0; i < 8; i++) {
         for(int j = 0; j < 8; j++) {
-            ptr = tile_data + (tile * 16) + (i * 2) + (j / 2);
-            data = *ptr >> ((j % 3) * 2);
-            data &= 3;
-            color = bw_pallete[data];
+            ptr = tile_data + (tile * 16) + (i * 2) + (j / 4);
 
+            int s = 6 - ((j % 3) * 2);
+            data = *ptr >> s;
+            data &= 3;
+
+            color_index = (display.bgp >> (data * 2)) & 3;
+            color = bw_pallete[color_index];
             background_buffer[(yp * 256) + xp] = color;
 
             /*if(color != 0xFFFFFF) {
