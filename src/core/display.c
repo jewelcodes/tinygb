@@ -12,7 +12,7 @@
 /*
 
 Notes to self regarding how the display works:
-- Vertical line starts at mode 2 (reading OAM)
+- Horizontal line starts at mode 2 (reading OAM)
 - Next mode is mode 3 (reading both OAM and VRAM)
 - Next mode is mode 0 (H-blank, not reading anything)
 - After 144 lines are completed, enter mode 1 (V-blank)
