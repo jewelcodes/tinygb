@@ -37,11 +37,17 @@ display_t display;
 int display_cycles = 0;
 
 void *vram;
-uint32_t *framebuffer, *scaled_framebuffer;
+uint32_t *framebuffer, *scaled_framebuffer, *temp_framebuffer;
+uint32_t *background_buffer;
+char oam[OAM_SIZE];
 
 extern int scaling;
 
 int scaled_w, scaled_h;
+
+uint32_t bw_pallete[4] = {
+    0xFFFFFF, 0xAAAAAA, 0x555555, 0x000000
+};
 
 void display_start() {
     memset(&display, 0, sizeof(display_t));
@@ -65,10 +71,12 @@ void display_start() {
     }
 
     framebuffer = calloc(GB_WIDTH*GB_HEIGHT, 4);
+    temp_framebuffer = calloc(GB_WIDTH*GB_HEIGHT, 4);
+    background_buffer = calloc(256*256, 4);
     if(scaling != 1) scaled_framebuffer = calloc(GB_WIDTH*GB_HEIGHT, 4*scaling*scaling*4);
     else scaled_framebuffer = framebuffer;
 
-    if(!framebuffer || !scaled_framebuffer) {
+    if(!framebuffer || !scaled_framebuffer || !temp_framebuffer || !background_buffer) {
         die(-1, "unable to allocate memory for framebuffer\n");
     }
 
@@ -222,6 +230,97 @@ void update_framebuffer() {
     }
 }
 
+void plot_bg_tile(int x, int y, uint8_t tile, uint8_t *tile_data) {
+    // x and y are in tiles, not pixels
+    int xp = x * 8;
+    int yp = y * 8;
+
+    uint32_t color;
+    uint8_t data;
+    uint8_t *ptr;
+
+    /*write_log("[display] rendering bg tile %d, data bytes ", tile);
+
+    for(int i = 0; i < 16; i++) {
+        write_log("%02X ", tile_data[(tile * 16) + i]);
+    }
+
+    write_log("\n");*/
+
+    // 8x8 tiles
+    for(int i = 0; i < 8; i++) {
+        for(int j = 0; j < 8; j++) {
+            ptr = tile_data + (tile * 16) + (i * 2) + (j / 2);
+            data = *ptr >> ((j % 3) * 2);
+            data &= 3;
+            color = bw_pallete[data];
+
+            background_buffer[(yp * 256) + xp] = color;
+
+            /*if(color != 0xFFFFFF) {
+                printf("h");
+            }*/
+
+            xp++;
+        }
+
+        yp++;
+        xp = x * 8;
+    }
+}
+
+void render_line() {
+    // renders a single horizontal line
+    copy_oam(oam);
+
+    uint8_t *bg_win_tiles;
+    if(display.lcdc & 0x10) bg_win_tiles = vram + 0;    // 0x8000-0x8FFF
+    else bg_win_tiles = vram + 0x800;    // 0x8800-0x97FF
+
+    // test if background is enabled
+    if(display.lcdc & 0x01) {
+        uint8_t *bg_map;
+        if(display.lcdc & 0x08) {
+            bg_map = vram + 0x1C00;     // 0x9C00-0x9FFF
+
+            // TODO 
+            die(-1, "unimplemented 0x9C00 signed tile numbering\n");
+        } else {
+            bg_map = vram + 0x1800;     // 0x9800-0x9BFF
+
+            for(int y = 0; y < 32; y++) {
+                for(int x = 0; x < 32; x++) {
+                    plot_bg_tile(x, y, *bg_map, bg_win_tiles);
+                    bg_map++;
+                }
+            }
+        }
+
+        // here the background has been drawn, copy the visible part of it
+        //write_log("[display] rendering background, SCY = %d, SCX = %d\n", display.scy, display.scx);
+
+        for(int y = 0; y < GB_HEIGHT; y++) {
+            for(int x = 0; x < GB_WIDTH; x++) {
+                temp_framebuffer[(y * GB_WIDTH) + x] = background_buffer[((y + display.scy) * 256) + (x + display.scx)];
+            }
+        }
+
+    } else {
+        // no background, clear to white
+        for(int i = 0; i < GB_WIDTH*GB_HEIGHT; i++) {
+            temp_framebuffer[i] = bw_pallete[0];
+        }
+    }
+
+    // done, copy the singular line we were at
+    uint32_t *src = temp_framebuffer + (display.ly * GB_WIDTH);
+    uint32_t *dst = framebuffer + (display.ly * GB_WIDTH);
+
+    for(int i = 0; i < GB_WIDTH; i++) {
+        dst[i] = src[i];
+    }
+}
+
 void display_cycle() {
     if(!(display.lcdc & LCDC_ENABLE)) return;
     display_cycles += timing.last_instruction_cycles;
@@ -277,6 +376,9 @@ void display_cycle() {
             // mode 3 -- reading OAM and VRAM
             display.stat &= 0xFC;
             display.stat |= 3;
+
+            // complete one line
+            render_line();
         } else if(display_cycles <= 455) {
             // mode 0
             display.stat &= 0xFC;
@@ -312,7 +414,9 @@ void display_cycle() {
 }
 
 void vram_write(uint16_t addr, uint8_t byte) {
-    uint8_t *ptr = (uint8_t *)vram + byte;
+    addr -= 0x8000;
+
+    uint8_t *ptr = (uint8_t *)vram + addr;
     ptr += (8192 * display.vbk);    // for CGB banking
 
     *ptr = addr;

@@ -82,6 +82,7 @@ void cpu_log();
 uint8_t read_byte(uint16_t);
 uint16_t read_word(uint16_t);
 void write_byte(uint16_t, uint8_t);
+void copy_oam(void *);
 
 // interrupts
 uint8_t if_read();

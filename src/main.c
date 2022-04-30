@@ -99,7 +99,7 @@ int main(int argc, char **argv) {
             case SDL_QUIT:
                 SDL_DestroyWindow(window);
                 SDL_Quit();
-                return 0;
+                die(0, "");
             case SDL_KEYDOWN:
                 cpu_log();
                 break;

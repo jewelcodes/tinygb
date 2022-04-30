@@ -326,3 +326,7 @@ void write_byte(uint16_t addr, uint8_t byte) {
     write_log("[memory] unimplemented write at address 0x%04X value 0x%02X in MBC%d ROM\n", addr, byte, mbc_type);
     die(-1, NULL);
 }
+
+inline void copy_oam(void *dst) {
+    memcpy(dst, ram+OAM, 256);
+}
