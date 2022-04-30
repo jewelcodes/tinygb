@@ -208,11 +208,13 @@ inline void scale_xline(uint32_t *new, uint32_t *old) {
 
 void update_framebuffer() {
     // scale up the buffer
-    for(int y = 0; y < scaled_h; y++) {
-        uint32_t *dst = scaled_framebuffer + (y * scaled_w);
-        uint32_t *src = framebuffer + ((y / scaling) * GB_WIDTH);
+    if(scaling != 1) {
+        for(int y = 0; y < scaled_h; y++) {
+            uint32_t *dst = scaled_framebuffer + (y * scaled_w);
+            uint32_t *src = framebuffer + ((y / scaling) * GB_WIDTH);
 
-        scale_xline(dst, src);
+            scale_xline(dst, src);
+        }
     }
 
     // write it to the screen
@@ -237,6 +239,7 @@ void plot_bg_tile(int x, int y, uint8_t tile, uint8_t *tile_data) {
 
     uint32_t color;
     uint8_t data, color_index;
+    uint8_t data_lo, data_hi;
     uint8_t *ptr;
 
     /*write_log("[display] rendering bg tile %d, data bytes ", tile);
@@ -249,14 +252,33 @@ void plot_bg_tile(int x, int y, uint8_t tile, uint8_t *tile_data) {
 
     // 8x8 tiles
     for(int i = 0; i < 8; i++) {
-        for(int j = 0; j < 8; j++) {
-            ptr = tile_data + (tile * 16) + (i * 2) + (j / 4);
+        ptr = tile_data + (tile * 16) + (i * 2);// + (j / 4);
 
-            int s = 6 - ((j % 3) * 2);
+        //printf("data for row %d is %02X %02X\n", i, ptr[0], ptr[1]);
+
+        for(int j = 0; j < 8; j++) {
+
+            /*int s = 6 - ((j % 3) * 2);
             data = *ptr >> s;
-            data &= 3;
+            data &= 3;*/
+
+            /*data = (ptr[1] >> (7 - j));
+            data <<= 1;
+            data &= 2;  // keep only bit 1
+            data |= ptr[0] >> (7 - j) & 1;*/
+
+            data_hi = (ptr[1] >> (7 - j)) & 1;
+            data_hi <<= 1;
+
+            data_lo = (ptr[0] >> (7 - j));
+            data_lo &= 1;
+
+            data = data_hi | data_lo;
+
+            //printf("data for x/y %d/%d is %d\n", i, j, data);
 
             color_index = (display.bgp >> (data * 2)) & 3;
+            //color_index = data;
             color = bw_pallete[color_index];
             background_buffer[(yp * 256) + xp] = color;
 
