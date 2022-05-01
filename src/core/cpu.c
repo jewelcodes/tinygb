@@ -1692,6 +1692,55 @@ void rra() {
     count_cycles(1);
 }
 
+void sub_d8() {
+    uint8_t d8 = read_byte(cpu.pc+1);
+
+#ifdef DISASM
+    disasm_log("sub 0x%02X\n", d8);
+#endif
+
+    uint8_t a = read_reg8(REG_A);
+    a -= d8;
+
+    cpu.af |= FLAG_N;
+
+    if(!a) cpu.af |= FLAG_ZF;
+    else cpu.af &= (~FLAG_ZF);
+
+    if(a > read_reg8(REG_A)) cpu.af |= FLAG_CY;
+    else cpu.af &= (~FLAG_CY);
+
+    if((a & 0x0F) < (read_reg8(REG_A) & 0x0F)) cpu.af |= FLAG_H;
+    else cpu.af &= (~FLAG_H);
+
+    write_reg8(REG_A, a);
+
+    cpu.pc += 2;
+    count_cycles(2);
+}
+
+void rlca() {
+#ifdef DISASM
+    disasm_log("rlca\n");
+#endif
+
+    uint8_t a = read_reg8(REG_A);
+    uint8_t old_msb;
+    if(a & 0x80) old_msb = 0x01;
+    else old_msb = 0x00;
+
+    a <<= 1;
+    a |= old_msb;
+
+    if(old_msb) cpu.af |= FLAG_CY;
+    else cpu.af &= (~FLAG_CY);
+
+    cpu.af &= ~(FLAG_ZF | FLAG_N | FLAG_H);
+
+    cpu.pc++;
+    count_cycles(1);
+}
+
 /* 
     EXTENDED OPCODES
     these are all prefixed with 0xCB first
@@ -1870,9 +1919,58 @@ void rr_r() {
     count_cycles(2);
 }
 
+void set_n_r() {
+    uint8_t opcode = read_byte(cpu.pc+1);
+    int n = (opcode >> 3) & 7;
+    int reg = opcode & 7;
+
+#ifdef DISASM
+    disasm_log("set %d, %s\n", n, registers[reg]);
+#endif
+
+    uint8_t val = read_reg8(reg);
+    val |= (1 << n);
+    write_reg8(reg, val);
+
+    cpu.pc += 2;
+    count_cycles(2);
+}
+
+void set_n_hl() {
+    uint8_t opcode = read_byte(cpu.pc+1);
+    int n = (opcode >> 3) & 7;
+
+#ifdef DISASM
+    disasm_log("set %d, (hl)\n", n);
+#endif
+
+    uint8_t val = read_byte(cpu.hl);
+    val |= (1 << n);
+    write_byte(cpu.hl, val);
+
+    cpu.pc += 2;
+    count_cycles(4);
+}
+
+void res_n_hl() {
+    uint8_t opcode = read_byte(cpu.pc+1);
+    int n = (opcode >> 4) & 7;
+
+#ifdef DISASM
+    disasm_log("res %d, (hl)\n", n]);
+#endif
+
+    uint8_t val = read_byte(cpu.hl);
+    val &= ~(1 << n);
+    write_byte(cpu.hl, val);
+
+    cpu.pc += 2;
+    count_cycles(4);
+}
+
 // lookup tables
 void (*opcodes[256])() = {
-    nop, ld_r_xxxx, ld_bc_a, inc_r16, inc_r, dec_r, ld_r_xx, NULL,  // 0x00
+    nop, ld_r_xxxx, ld_bc_a, inc_r16, inc_r, dec_r, ld_r_xx, rlca,  // 0x00
     NULL, add_hl_r16, ld_a_bc, dec_r16, inc_r, dec_r, ld_r_xx, NULL,  // 0x08
     NULL, ld_r_xxxx, ld_de_a, inc_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x10
     jr_e, add_hl_r16, ld_a_de, dec_r16, inc_r, dec_r, ld_r_xx, rra,  // 0x18
@@ -1901,7 +1999,7 @@ void (*opcodes[256])() = {
     cp_r, cp_r, cp_r, cp_r, cp_r, cp_r, cp_hl, cp_r,  // 0xB8
     ret_nz, pop_r16, jp_nz_a16, jp_nn, call_nz, push_r16, add_d8, NULL,  // 0xC0
     ret_z, ret, jp_z_a16, ex_opcode, NULL, call_a16, NULL, NULL,  // 0xC8
-    NULL, pop_r16, NULL, NULL, NULL, push_r16, NULL, NULL,  // 0xD0
+    NULL, pop_r16, NULL, NULL, NULL, push_r16, sub_d8, NULL,  // 0xD0
     NULL, reti, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xD8
     ldh_a8_a, pop_r16, ldh_c_a, NULL, NULL, push_r16, and_n, rst,  // 0xE0
     add_sp_s, jp_hl, ld_a16_a, NULL, NULL, NULL, xor_d8, rst,  // 0xE8
@@ -1928,21 +2026,21 @@ void (*ex_opcodes[256])() = {
     bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_hl, bit_n_r,     // 0x70
     bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_hl, bit_n_r,     // 0x78
 
-    res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, NULL, res_n_r,     // 0x80
-    res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, NULL, res_n_r,     // 0x88
-    res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, NULL, res_n_r,     // 0x90
-    res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, NULL, res_n_r,     // 0x98
-    res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, NULL, res_n_r,     // 0xA0
-    res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, NULL, res_n_r,     // 0xA8
-    res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, NULL, res_n_r,     // 0xB0
-    res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, NULL, res_n_r,     // 0xB8
+    res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_hl, res_n_r,     // 0x80
+    res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_hl, res_n_r,     // 0x88
+    res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_hl, res_n_r,     // 0x90
+    res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_hl, res_n_r,     // 0x98
+    res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_hl, res_n_r,     // 0xA0
+    res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_hl, res_n_r,     // 0xA8
+    res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_hl, res_n_r,     // 0xB0
+    res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_r, res_n_hl, res_n_r,     // 0xB8
 
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0xC0
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0xC8
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0xD0
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0xD8
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0xE0
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0xE8
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0xF0
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0xF8
+    set_n_r, set_n_r, set_n_r, set_n_r, set_n_r, set_n_r, set_n_hl, set_n_r,     // 0xC0
+    set_n_r, set_n_r, set_n_r, set_n_r, set_n_r, set_n_r, set_n_hl, set_n_r,     // 0xC8
+    set_n_r, set_n_r, set_n_r, set_n_r, set_n_r, set_n_r, set_n_hl, set_n_r,     // 0xD0
+    set_n_r, set_n_r, set_n_r, set_n_r, set_n_r, set_n_r, set_n_hl, set_n_r,     // 0xD8
+    set_n_r, set_n_r, set_n_r, set_n_r, set_n_r, set_n_r, set_n_hl, set_n_r,     // 0xE0
+    set_n_r, set_n_r, set_n_r, set_n_r, set_n_r, set_n_r, set_n_hl, set_n_r,     // 0xE8
+    set_n_r, set_n_r, set_n_r, set_n_r, set_n_r, set_n_r, set_n_hl, set_n_r,     // 0xF0
+    set_n_r, set_n_r, set_n_r, set_n_r, set_n_r, set_n_r, set_n_hl, set_n_r,     // 0xF8
 };
