@@ -7,7 +7,7 @@
 #include <ioports.h>
 
 #define INT_LOG
-//#define DISASM
+#define DISASM
 //#define THROTTLE_LOG
 #define THROTTLE
 
@@ -1728,10 +1728,15 @@ void rlca() {
     if(a & 0x80) cpu.af |= FLAG_CY;
     else cpu.af &= (~FLAG_CY);
 
-    a <<= 1;
+    a = a << 1;
+    if(cpu.af & FLAG_CY) a |= 0x01;
+    
     write_reg8(REG_A, a);
 
-    cpu.af &= ~(FLAG_ZF | FLAG_N | FLAG_H);
+    if(!a) cpu.af |= FLAG_ZF;
+    else cpu.af &= (~FLAG_ZF);
+
+    cpu.af &= ~(FLAG_N | FLAG_H);
 
     cpu.pc++;
     count_cycles(1);
@@ -1953,7 +1958,7 @@ void res_n_hl() {
     int n = (opcode >> 4) & 7;
 
 #ifdef DISASM
-    disasm_log("res %d, (hl)\n", n]);
+    disasm_log("res %d, (hl)\n", n);
 #endif
 
     uint8_t val = read_byte(cpu.hl);
