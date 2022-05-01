@@ -94,6 +94,7 @@ int main(int argc, char **argv) {
     sound_start();
 
     SDL_Event e;
+    int key;
     while(1) {
         while(SDL_PollEvent(&e)) {
             switch(e.type) {
@@ -102,7 +103,40 @@ int main(int argc, char **argv) {
                 SDL_Quit();
                 die(0, "");
             case SDL_KEYDOWN:
-                cpu_log();
+            case SDL_KEYUP:
+                // convert SDL keys to internal keys
+                // TODO: read these keys from a config file
+                switch(e.key.keysym.sym) {
+                case SDLK_LEFT:
+                    key = JOYPAD_LEFT;
+                    break;
+                case SDLK_RIGHT:
+                    key = JOYPAD_RIGHT;
+                    break;
+                case SDLK_UP:
+                    key = JOYPAD_UP;
+                    break;
+                case SDLK_DOWN:
+                    key = JOYPAD_DOWN;
+                    break;
+                case SDLK_z:
+                    key = JOYPAD_A;
+                    break;
+                case SDLK_x:
+                    key = JOYPAD_B;
+                    break;
+                case SDLK_RETURN:
+                    key = JOYPAD_START;
+                    break;
+                case SDLK_RSHIFT:
+                    key = JOYPAD_SELECT;
+                    break;
+                default:
+                    key = 0;
+                    break;
+                }
+
+                if(key) joypad_handle((e.type == SDL_KEYDOWN), key);
                 break;
             default:
                 break;

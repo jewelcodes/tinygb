@@ -40,6 +40,15 @@
 #define VSYNC_PAUSE             1.08769     // ms
 #define OAM_SIZE                160         // bytes
 
+#define JOYPAD_A                1
+#define JOYPAD_B                2
+#define JOYPAD_START            3
+#define JOYPAD_SELECT           4
+#define JOYPAD_RIGHT            5
+#define JOYPAD_LEFT             6
+#define JOYPAD_UP               7
+#define JOYPAD_DOWN             8
+
 typedef struct {
     int cpu_cycles_ms, cpu_cycles_vline, cpu_cycles_timer;
     int current_cycles;
@@ -113,3 +122,4 @@ void sound_write(uint16_t, uint8_t);
 // joypad
 void joypad_write(uint16_t, uint8_t);
 uint8_t joypad_read(uint16_t);
+void joypad_handle(int, int);
