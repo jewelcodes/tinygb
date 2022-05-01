@@ -239,6 +239,7 @@ void plot_bg_tile(int x, int y, uint8_t tile, uint8_t *tile_data) {
     uint8_t data, color_index;
     uint8_t data_lo, data_hi;
     uint8_t *ptr;
+    uint8_t positive_tile;
 
     /*write_log("[display] rendering bg tile %d, data bytes ", tile);
 
@@ -250,7 +251,19 @@ void plot_bg_tile(int x, int y, uint8_t tile, uint8_t *tile_data) {
 
     // 8x8 tiles
     for(int i = 0; i < 8; i++) {
-        ptr = tile_data + (tile * 16) + (i * 2);// + (j / 4);
+        if(display.lcdc & 0x10) ptr = tile_data + (tile * 16) + (i * 2);    // normal positive
+        else {
+            if(tile & 0x80) {
+                // negative
+                positive_tile = ~tile;
+                positive_tile++;
+
+                ptr = tile_data + (i * 2) + 0x800 - (positive_tile * 16);
+            } else {
+                // positive
+                ptr = tile_data + (tile * 16) + (i * 2) + 0x800;    // start at 0x9000
+            }
+        }
 
         //printf("data for row %d is %02X %02X\n", i, ptr[0], ptr[1]);
 
