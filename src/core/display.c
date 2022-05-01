@@ -235,8 +235,10 @@ void update_framebuffer() {
 
 void plot_bg_tile(int x, int y, uint8_t tile, uint8_t *tile_data) {
     // x and y are in tiles, not pixels
-    int xp = x * 8;
-    int yp = y * 8;
+    int xp = x << 3;    // x8
+    int yp = y << 3;
+
+    if(!(display.ly >= yp && display.ly <= yp+8)) return;   // save a fuckton of performance
 
     uint32_t color;
     uint8_t data, color_index;
@@ -252,22 +254,22 @@ void plot_bg_tile(int x, int y, uint8_t tile, uint8_t *tile_data) {
 
     write_log("\n");*/
 
+    if(display.lcdc & 0x10) ptr = tile_data + (tile * 16);  // normal positive
+    else {
+        if(tile & 0x80) {
+            // negative
+            positive_tile = ~tile;
+            positive_tile++;
+
+            ptr = tile_data + 0x800 - (positive_tile * 16);
+        } else {
+            // positive
+            ptr = tile_data + (tile * 16) + 0x800;  // start at 0x9000
+        }
+    }
+
     // 8x8 tiles
     for(int i = 0; i < 8; i++) {
-        if(display.lcdc & 0x10) ptr = tile_data + (tile * 16) + (i * 2);    // normal positive
-        else {
-            if(tile & 0x80) {
-                // negative
-                positive_tile = ~tile;
-                positive_tile++;
-
-                ptr = tile_data + (i * 2) + 0x800 - (positive_tile * 16);
-            } else {
-                // positive
-                ptr = tile_data + (tile * 16) + (i * 2) + 0x800;    // start at 0x9000
-            }
-        }
-
         //printf("data for row %d is %02X %02X\n", i, ptr[0], ptr[1]);
 
         for(int j = 0; j < 8; j++) {
@@ -304,7 +306,8 @@ void plot_bg_tile(int x, int y, uint8_t tile, uint8_t *tile_data) {
         }
 
         yp++;
-        xp = x * 8;
+        xp = x << 3;    // x8
+        ptr += 2;
     }
 }
 
@@ -331,14 +334,14 @@ void plot_small_sprite(int n) {
     x -= 8;
     y -= 16;
 
+    if(!(display.ly >= y && display.ly <= y+8)) return;   // performance
+
     //write_log("[display] plotting tile %d at x/y %d/%d\n", tile, x, y);
 
     // 8x8 tiles
     uint8_t *tile_data = vram + 0x0000;     // always starts at 0x8000, unlike bg/window
-    uint8_t *ptr;
+    uint8_t *ptr = tile_data + (tile * 16);
     for(int i = 0; i < 8; i++) {
-        ptr = tile_data + (tile * 16) + (i * 2);
-
         for(int j = 0; j < 8; j++) {
             data_hi = (ptr[1] >> (7 - j)) & 1;
             data_hi <<= 1;
@@ -363,6 +366,8 @@ void plot_small_sprite(int n) {
                 if(data) temp_framebuffer[((i + y) * GB_WIDTH) + (j + x)] = color;
             }
         }
+
+        ptr += 2;
     }
 
     return;
