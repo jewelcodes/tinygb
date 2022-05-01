@@ -9,6 +9,7 @@
 
 long rom_size;
 int scaling = 4;
+int frameskip = 1;  // frameskip+1; no skip
 
 SDL_Window *window;
 SDL_Surface *surface;
@@ -77,7 +78,7 @@ int main(int argc, char **argv) {
     write_log("SDL Bmask: 0x%06X\n", surface->format->Bmask);
     write_log("SDL Amask: 0x%08X\n", surface->format->Amask);
 
-    // disgustingly lazy thing rn
+    // disgustingly lazy thing for now
     if(surface->format->BytesPerPixel != 3 && surface->format->BytesPerPixel != 4 &&
         surface->format->Rmask != 0xFF0000 && surface->format->Gmask != 0xFF00 && surface->format->Bmask != 0xFF) {
         die(-1, "unsupported surface format; only RGB 24-bpp or 32-bpp are supported\n");
@@ -108,48 +109,15 @@ int main(int argc, char **argv) {
             }
         }
 
-        // one frame
-        /*
-        // regardless of whether the timer or display is faster, we wanna loop
-        // for exactly one frame (59 Hz)
-        if(timing.cpu_cycles_timer > timing.cpu_cycles_vline) {
-            // refresh rate faster than timer, so keep cycling the display
-            // until it's time to update the timer
-            for(int i = 0; i < timing.main_cycles; i++) {
-                for(cycles = 0; cycles < timing.cpu_cycles_timer; cycles += timing.current_cycles) {
-                    for(timing.current_cycles = 0; timing.current_cycles < timing.cpu_cycles_vline; ) {
-                        cpu_cycle();
-                    }
-
-                    display_cycle();
-                }
-
+        for(int i = frameskip; i; i--) {
+            for(timing.current_cycles = 0; timing.current_cycles < timing.main_cycles; ) {
+                cpu_cycle();
+                display_cycle();
                 timer_cycle();
             }
-        } else {
-            // here the timer is faster, so we use the timer to track time
-            for(int i = 0; i < timing.main_cycles; i++) {
-                for(cycles = 0; cycles < timing.cpu_cycles_vline; cycles += timing.current_cycles) {
-                    for(timing.current_cycles = 0; timing.current_cycles < timing.cpu_cycles_timer; ) {
-                        cpu_cycle();
-                    }
-
-                    timer_cycle();
-                }
-
-                display_cycle();
-            }
         }
 
-        */
-
-        for(timing.current_cycles = 0; timing.current_cycles < timing.main_cycles; ) {
-            cpu_cycle();
-            display_cycle();
-            timer_cycle();
-        }
-
-        // one frame was drawn by here
+        // frame is ready here
         SDL_UpdateWindowSurface(window);
     }
 
