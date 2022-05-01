@@ -9,6 +9,7 @@
 #define INT_LOG
 //#define DISASM
 //#define THROTTLE_LOG
+//#define THROTTLE
 
 #define disasm_log  write_log("[disasm] %16d %04X ", total_cycles, cpu.pc); write_log
 
@@ -25,7 +26,7 @@
 #define REG_HL      2
 #define REG_SP      3
 
-#define THROTTLE_THRESHOLD  20      // ms
+#define THROTTLE_THRESHOLD  80      // ms
 
 const char *registers[] = {
     "b", "c", "d", "e", "h", "l", "UNDEFINED", "a"
@@ -79,7 +80,10 @@ void count_cycles(int n) {
         write_log("[cpu] accumulated %d cycles, delaying %d ms\n", cycles, (int)cycles_time);
 #endif
 
-        //SDL_Delay(THROTTLE_THRESHOLD);
+#ifdef THROTTLE
+        SDL_Delay(THROTTLE_THRESHOLD);
+#endif
+
         cycles = 0;
     }
 }
