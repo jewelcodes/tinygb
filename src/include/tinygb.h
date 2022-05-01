@@ -62,6 +62,8 @@ extern int is_cgb;
 
 extern int cpu_speed;
 
+extern int scaling, frameskip;
+
 extern SDL_Window *window;
 extern SDL_Surface *surface;
 extern timing_t timing;

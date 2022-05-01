@@ -9,7 +9,7 @@
 
 long rom_size;
 int scaling = 4;
-int frameskip = 1;  // frameskip+1; no skip
+int frameskip = 1;  // no skip
 
 SDL_Window *window;
 SDL_Surface *surface;
@@ -109,16 +109,11 @@ int main(int argc, char **argv) {
             }
         }
 
-        for(int i = frameskip; i; i--) {
-            for(timing.current_cycles = 0; timing.current_cycles < timing.main_cycles; ) {
-                cpu_cycle();
-                display_cycle();
-                timer_cycle();
-            }
+        for(timing.current_cycles = 0; timing.current_cycles < timing.main_cycles; ) {
+            cpu_cycle();
+            display_cycle();
+            timer_cycle();
         }
-
-        // frame is ready here
-        SDL_UpdateWindowSurface(window);
     }
 
     die(0, "");

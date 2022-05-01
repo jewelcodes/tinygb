@@ -39,9 +39,9 @@ uint32_t *framebuffer, *scaled_framebuffer, *temp_framebuffer;
 uint32_t *background_buffer;
 char oam[OAM_SIZE];
 
-extern int scaling;
-
 int scaled_w, scaled_h;
+
+int framecount = 0;
 
 uint32_t bw_pallete[4] = {
     0xFFFFFF, 0xAAAAAA, 0x555555, 0x000000
@@ -227,6 +227,12 @@ void update_framebuffer() {
         }
     } else {
         die(-1, "unimplemented non 32-bpp surfaces\n");
+    }
+
+    framecount++;
+    if(framecount > frameskip) {
+        SDL_UpdateWindowSurface(window);
+        framecount = 0;
     }
 }
 
