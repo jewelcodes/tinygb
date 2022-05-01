@@ -9,7 +9,7 @@
 #define INT_LOG
 //#define DISASM
 //#define THROTTLE_LOG
-//#define THROTTLE
+#define THROTTLE
 
 #define disasm_log  write_log("[disasm] %16d %04X ", total_cycles, cpu.pc); write_log
 
@@ -1725,15 +1725,11 @@ void rlca() {
 #endif
 
     uint8_t a = read_reg8(REG_A);
-    uint8_t old_msb;
-    if(a & 0x80) old_msb = 0x01;
-    else old_msb = 0x00;
+    if(a & 0x80) cpu.af |= FLAG_CY;
+    else cpu.af &= (~FLAG_CY);
 
     a <<= 1;
-    a |= old_msb;
-
-    if(old_msb) cpu.af |= FLAG_CY;
-    else cpu.af &= (~FLAG_CY);
+    write_reg8(REG_A, a);
 
     cpu.af &= ~(FLAG_ZF | FLAG_N | FLAG_H);
 
