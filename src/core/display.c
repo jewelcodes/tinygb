@@ -23,9 +23,6 @@ Notes to self regarding how the display works:
   window is drawn on top of the background also as a map of tiles, and finally
   the sprites (OAM) are drawn as a final map.
 
-- Background maps are mandatory, but the window and sprites can be switched
-  on/off.
-
 - Mode (2 --> 3 --> 0) 144 times
 - Mode (1) 10 times
 
@@ -37,7 +34,7 @@ int display_cycles = 0;
 void *vram;
 uint32_t *framebuffer, *scaled_framebuffer, *temp_framebuffer;
 uint32_t *background_buffer;
-char oam[OAM_SIZE];
+uint8_t oam[OAM_SIZE];
 
 int scaled_w, scaled_h;
 
@@ -311,6 +308,66 @@ void plot_bg_tile(int x, int y, uint8_t tile, uint8_t *tile_data) {
     }
 }
 
+void plot_small_sprite(int n) {
+    // n max 40
+    if(n >= 40) {
+        write_log("[display] warning: attempt to draw non-existent sprite number %d, ignoring...\n", n);
+        return;
+    }
+
+    uint8_t *oam_data = oam + (n * 4);
+
+    uint8_t x, y, tile, flags;
+    y = oam_data[0];
+    x = oam_data[1];
+    tile = oam_data[2];
+    flags = oam_data[3];
+
+    uint8_t data, data_lo, data_hi, color_index;
+    uint32_t color;
+
+    if(!y || y >= 152 || !x || x >= 168) return;    // invisible sprite
+
+    x -= 8;
+    y -= 16;
+
+    //write_log("[display] plotting tile %d at x/y %d/%d\n", tile, x, y);
+
+    // 8x8 tiles
+    uint8_t *tile_data = vram + 0x0000;     // always starts at 0x8000, unlike bg/window
+    uint8_t *ptr;
+    for(int i = 0; i < 8; i++) {
+        ptr = tile_data + (tile * 16) + (i * 2);
+
+        for(int j = 0; j < 8; j++) {
+            data_hi = (ptr[1] >> (7 - j)) & 1;
+            data_hi <<= 1;
+
+            data_lo = (ptr[0] >> (7 - j));
+            data_lo &= 1;
+
+            data = data_hi | data_lo;
+
+            if(flags & 0x10) color_index = (display.obp1 >> (data * 2)) & 3;    // pallete 1
+            else color_index = (display.obp0 >> (data * 2)) & 3;    // pallete 0
+
+            color = bw_pallete[color_index];
+
+            // sprites may be on top of or under the background
+            if(flags & 0x80) {
+                // sprite is behind bg colors 1-3, on top of bg color 0
+                die(-1, "unimplemented sprites behind background\n");
+            } else {
+                // sprite is on top of bg, normal scenario
+                // sprite color value zero means transparent, so only plot non-zero values
+                if(data) temp_framebuffer[((i + y) * GB_WIDTH) + (j + x)] = color;
+            }
+        }
+    }
+
+    return;
+}
+
 void render_line() {
     // renders a single horizontal line
     copy_oam(oam);
@@ -351,6 +408,20 @@ void render_line() {
         // no background, clear to white
         for(int i = 0; i < GB_WIDTH*GB_HEIGHT; i++) {
             temp_framebuffer[i] = bw_pallete[0];
+        }
+    }
+
+    // TODO: implement window layer here before object layer
+
+    // object layer
+    if(display.lcdc & 0x02) {
+        // sprites are enabled
+        if(display.lcdc & 0x04) {
+            die(-1, "unimplemented 8x16 sprites\n");
+        } else {
+            for(int i = 0; i < 40; i++) {   // 40 sprites
+                plot_small_sprite(i);
+            }
         }
     }
 
