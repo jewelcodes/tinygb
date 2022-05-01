@@ -238,7 +238,7 @@ void plot_bg_tile(int x, int y, uint8_t tile, uint8_t *tile_data) {
     int xp = x << 3;    // x8
     int yp = y << 3;
 
-    if(!(display.ly >= yp && display.ly <= yp+8)) return;   // save a fuckton of performance
+    if(!(display.ly >= (yp+display.scy) && display.ly <= (yp+display.scy+8))) return;   // save a fuckton of performance
 
     uint32_t color;
     uint8_t data, color_index;
