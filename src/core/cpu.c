@@ -66,8 +66,8 @@ int cycles_per_throttle;
 }*/
 
 void count_cycles(int n) {
-    n <<= 2;    // x4 to machine cycles
     n++;
+    n <<= 2;    // x4 to machine cycles
 
     timing.last_instruction_cycles = n;
     total_cycles += n;
@@ -79,7 +79,7 @@ void count_cycles(int n) {
         write_log("[cpu] accumulated %d cycles, delaying %d ms\n", cycles, (int)cycles_time);
 #endif
 
-        SDL_Delay(THROTTLE_THRESHOLD);
+        //SDL_Delay(THROTTLE_THRESHOLD);
         cycles = 0;
     }
 }
@@ -131,7 +131,7 @@ void cpu_start() {
     timing.cpu_cycles_vline = (int)((double)timing.cpu_cycles_ms * REFRESH_TIME_LINE);
 
     write_log("[cpu] cycles per ms = %d\n", timing.cpu_cycles_ms);
-    timing.main_cycles = 70228;
+    timing.main_cycles = 70224 * 2 * (frameskip+1);
     //write_log("[cpu] cycles per v-line refresh = %d\n", timing.cpu_cycles_vline);
 }
 

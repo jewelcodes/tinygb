@@ -9,7 +9,7 @@
 
 long rom_size;
 int scaling = 4;
-int frameskip = 1;  // no skip
+int frameskip = 0;  // no skip
 
 SDL_Window *window;
 SDL_Surface *surface;
