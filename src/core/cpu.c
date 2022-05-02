@@ -6,10 +6,10 @@
 #include <stdlib.h>
 #include <ioports.h>
 
-#define INT_LOG
-#define DISASM
+//#define INT_LOG
+//#define DISASM
 //#define THROTTLE_LOG
-#define THROTTLE
+//#define THROTTLE
 
 #define disasm_log  write_log("[disasm] %16d %04X ", total_cycles, cpu.pc); write_log
 
@@ -26,7 +26,7 @@
 #define REG_HL      2
 #define REG_SP      3
 
-#define THROTTLE_THRESHOLD  80      // ms
+#define THROTTLE_THRESHOLD  20      // ms
 
 const char *registers[] = {
     "b", "c", "d", "e", "h", "l", "UNDEFINED", "a"
@@ -67,8 +67,8 @@ int cycles_per_throttle;
 }*/
 
 void count_cycles(int n) {
-    n++;
     n <<= 2;    // x4 to machine cycles
+    n += 5;
 
     timing.last_instruction_cycles = n;
     total_cycles += n;
@@ -1215,7 +1215,7 @@ void dec_hl() {
 
     uint8_t n = read_byte(cpu.hl);
     uint8_t old = n;
-    n++;
+    n--;
 
     cpu.af |= FLAG_N;
 
@@ -1730,7 +1730,7 @@ void rlca() {
 
     a = a << 1;
     if(cpu.af & FLAG_CY) a |= 0x01;
-    
+
     write_reg8(REG_A, a);
 
     if(!a) cpu.af |= FLAG_ZF;
