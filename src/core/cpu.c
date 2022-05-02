@@ -1916,6 +1916,23 @@ void ccf() {
     count_cycles(1);
 }
 
+void jp_c_a16() {
+    uint16_t new_pc = read_word(cpu.pc+1);
+
+#ifdef DISASM
+    disasm_log("jp c 0x%04X\n", new_pc);
+#endif
+
+    if(cpu.af & FLAG_CY) {
+        // C set, condition true
+        cpu.pc = new_pc;
+        count_cycles(4);
+    } else {
+        // C clear, condition false
+        cpu.pc += 3;
+        count_cycles(3);
+    }
+}
 
 /* 
     EXTENDED OPCODES
@@ -2233,7 +2250,7 @@ void (*opcodes[256])() = {
     ret_nz, pop_r16, jp_nz_a16, jp_nn, call_nz, push_r16, add_d8, NULL,  // 0xC0
     ret_z, ret, jp_z_a16, ex_opcode, call_z, call_a16, NULL, NULL,  // 0xC8
     ret_nc, pop_r16, NULL, NULL, NULL, push_r16, sub_d8, NULL,  // 0xD0
-    ret_c, reti, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xD8
+    ret_c, reti, jp_c_a16, NULL, NULL, NULL, NULL, NULL,  // 0xD8
     ldh_a8_a, pop_r16, ldh_c_a, NULL, NULL, push_r16, and_n, rst,  // 0xE0
     add_sp_s, jp_hl, ld_a16_a, NULL, NULL, NULL, xor_d8, rst,  // 0xE8
     ldh_a_a8, pop_af, ldh_a_c, di, NULL, push_af, or_d8, rst,  // 0xF0
