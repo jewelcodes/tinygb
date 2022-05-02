@@ -327,7 +327,7 @@ void plot_small_sprite(int n) {
     flags = oam_data[3];
 
     uint8_t data, data_lo, data_hi, color_index;
-    uint32_t color;
+    uint32_t color, bg_color, bg_color_zero;
 
     if(!y || y >= 152 || !x || x >= 168) return;    // invisible sprite
 
@@ -338,9 +338,13 @@ void plot_small_sprite(int n) {
 
     //write_log("[display] plotting tile %d at x/y %d/%d\n", tile, x, y);
 
+    // get bg color zero for layering
+    bg_color_zero = bw_pallete[display.bgp & 3];
+
     // 8x8 tiles
     uint8_t *tile_data = vram + 0x0000;     // always starts at 0x8000, unlike bg/window
     uint8_t *ptr = tile_data + (tile * 16);
+
     for(int i = 0; i < 8; i++) {
         for(int j = 0; j < 8; j++) {
             data_hi = (ptr[1] >> (7 - j)) & 1;
@@ -359,7 +363,10 @@ void plot_small_sprite(int n) {
             // sprites may be on top of or under the background
             if(flags & 0x80) {
                 // sprite is behind bg colors 1-3, on top of bg color 0
-                die(-1, "unimplemented sprites behind background\n");
+
+                // get bg color
+                bg_color = temp_framebuffer[((i + y) * GB_WIDTH) + (j + x)];
+                if((bg_color == bg_color_zero) && data) temp_framebuffer[((i + y) * GB_WIDTH) + (j + x)] = color;
             } else {
                 // sprite is on top of bg, normal scenario
                 // sprite color value zero means transparent, so only plot non-zero values
