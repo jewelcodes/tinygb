@@ -1861,6 +1861,62 @@ void ret_c() {
     }
 }
 
+void call_z() {
+    uint16_t new_pc = read_word(cpu.pc+1);
+
+#ifdef DISASM
+    disasm_log("call z 0x%04X\n", new_pc);
+#endif
+
+    if(!(cpu.af & FLAG_ZF)) {
+        // ZF clear, condition false
+        cpu.pc += 3;
+        count_cycles(3);
+    } else {
+        // ZF set, condition true
+        push(cpu.pc+3);
+        cpu.pc = new_pc;
+        count_cycles(6);
+    }
+}
+
+void ld_sp_hl() {
+#ifdef DISASM
+    disasm_log("ld sp, hl\n");
+#endif
+
+    cpu.sp = cpu.hl;
+    cpu.pc++;
+    count_cycles(2);
+}
+
+void scf() {
+#ifdef DISASM
+    disasm_log("scf\n");
+#endif
+
+    cpu.af |= FLAG_CY;
+    cpu.af &= ~(FLAG_N | FLAG_H);
+
+    cpu.pc++;
+    count_cycles(1);
+}
+
+void ccf() {
+#ifdef DISASM
+    disasm_log("ccf\n");
+#endif
+
+    if(cpu.af & FLAG_CY) cpu.af &= (~FLAG_CY);
+    else cpu.af |= FLAG_CY;
+
+    cpu.af &= ~(FLAG_N | FLAG_H);
+
+    cpu.pc++;
+    count_cycles(1);
+}
+
+
 /* 
     EXTENDED OPCODES
     these are all prefixed with 0xCB first
@@ -2088,16 +2144,73 @@ void res_n_hl() {
     count_cycles(4);
 }
 
+void rl_r() {
+    uint8_t opcode = read_byte(cpu.pc+1);
+    int reg = opcode & 7;
+
+#ifdef DISASM
+    disasm_log("rl %s\n", registers[reg]);
+#endif
+
+    uint8_t r = read_reg8(reg);
+    uint8_t old_cy;
+    if(cpu.af & FLAG_CY) old_cy = 0x01;
+    else old_cy = 0x00;
+
+    if(r & 0x80) cpu.af |= FLAG_CY;
+    else cpu.af &= (~FLAG_CY);
+
+    r <<= 1;
+    r |= old_cy;
+
+    if(!r) cpu.af |= FLAG_ZF;
+    else cpu.af &= (~FLAG_ZF);
+
+    cpu.af &= ~(FLAG_N | FLAG_H);
+
+    write_reg8(reg, r);
+    cpu.pc += 2;
+    count_cycles(2);
+}
+
+void sra_r() {
+    uint8_t opcode = read_byte(cpu.pc+1);
+    int reg = opcode & 7;
+
+#ifdef DISASM
+    disasm_log("sra %s\n", registers[reg]);
+#endif
+
+    uint8_t r = read_reg8(reg);
+    uint8_t new_msb;
+    if(r & 0x80) new_msb = 0x80;
+    else new_msb = 0x00;
+
+    if(r & 0x01) cpu.af |= FLAG_CY;
+    else cpu.af &= (~FLAG_CY);
+
+    r >>= 1;
+    r |= new_msb;
+
+    if(!r) cpu.af |= FLAG_ZF;
+    else cpu.af &= (~FLAG_ZF);
+
+    cpu.af &= ~(FLAG_N | FLAG_H);
+    write_reg8(reg, r);
+    cpu.pc += 2;
+    count_cycles(2);
+}
+
 // lookup tables
 void (*opcodes[256])() = {
     nop, ld_r_xxxx, ld_bc_a, inc_r16, inc_r, dec_r, ld_r_xx, rlca,  // 0x00
     NULL, add_hl_r16, ld_a_bc, dec_r16, inc_r, dec_r, ld_r_xx, NULL,  // 0x08
     NULL, ld_r_xxxx, ld_de_a, inc_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x10
     jr_e, add_hl_r16, ld_a_de, dec_r16, inc_r, dec_r, ld_r_xx, rra,  // 0x18
-    jr_nz, ld_r_xxxx, ldi_hl_a, inc_r16, NULL, dec_r, ld_r_xx, daa,  // 0x20
+    jr_nz, ld_r_xxxx, ldi_hl_a, inc_r16, inc_r, dec_r, ld_r_xx, daa,  // 0x20
     jr_z, add_hl_r16, ldi_a_hl, dec_r16, inc_r, dec_r, ld_r_xx, cpl,  // 0x28
-    jr_nc, ld_r_xxxx, ldd_hl_a, inc_r16, inc_hl, dec_hl, ld_hl_n, NULL,  // 0x30
-    jr_c, add_hl_r16, ldd_a_hl, dec_r16, inc_r, dec_r, ld_r_xx, NULL,  // 0x38
+    jr_nc, ld_r_xxxx, ldd_hl_a, inc_r16, inc_hl, dec_hl, ld_hl_n, scf,  // 0x30
+    jr_c, add_hl_r16, ldd_a_hl, dec_r16, inc_r, dec_r, ld_r_xx, ccf,  // 0x38
 
     // 8-bit loads
     ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_hl, ld_r_r,  // 0x40
@@ -2118,22 +2231,22 @@ void (*opcodes[256])() = {
     or_r, or_r, or_r, or_r, or_r, or_r, or_hl, or_r,  // 0xB0
     cp_r, cp_r, cp_r, cp_r, cp_r, cp_r, cp_hl, cp_r,  // 0xB8
     ret_nz, pop_r16, jp_nz_a16, jp_nn, call_nz, push_r16, add_d8, NULL,  // 0xC0
-    ret_z, ret, jp_z_a16, ex_opcode, NULL, call_a16, NULL, NULL,  // 0xC8
+    ret_z, ret, jp_z_a16, ex_opcode, call_z, call_a16, NULL, NULL,  // 0xC8
     ret_nc, pop_r16, NULL, NULL, NULL, push_r16, sub_d8, NULL,  // 0xD0
     ret_c, reti, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xD8
     ldh_a8_a, pop_r16, ldh_c_a, NULL, NULL, push_r16, and_n, rst,  // 0xE0
     add_sp_s, jp_hl, ld_a16_a, NULL, NULL, NULL, xor_d8, rst,  // 0xE8
     ldh_a_a8, pop_af, ldh_a_c, di, NULL, push_af, or_d8, rst,  // 0xF0
-    ld_hl_sp_s, NULL, ld_a_a16, ei, NULL, NULL, cp_xx, NULL,  // 0xF8
+    ld_hl_sp_s, ld_sp_hl, ld_a_a16, ei, NULL, NULL, cp_xx, NULL,  // 0xF8
 };
 
 void (*ex_opcodes[256])() = {
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x00
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x08
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x10
+    rl_r, rl_r, rl_r, rl_r, rl_r, rl_r, NULL, rl_r,     // 0x10
     rr_r, rr_r, rr_r, rr_r, rr_r, rr_r, NULL, rr_r,     // 0x18
     sla_r, sla_r, sla_r, sla_r, sla_r, sla_r, NULL, sla_r,     // 0x20
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x28
+    sra_r, sra_r, sra_r, sra_r, sra_r, sra_r, NULL, sra_r,     // 0x28
     swap_r, swap_r, swap_r, swap_r, swap_r, swap_r, NULL, swap_r,     // 0x30
     srl_r, srl_r, srl_r, srl_r, srl_r, srl_r, NULL, srl_r,     // 0x38
 
