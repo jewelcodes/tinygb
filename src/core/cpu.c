@@ -1781,17 +1781,18 @@ void daa() {
     if((cpu.af & FLAG_H) || ((a & 0x0F) > 0x09))
         correction |= 0x06;
 
-    if((cpu.af & FLAG_CY) || (((a >> 4) & 0x0F) > 0x09))
-        correction |= 0x06;
+    if((cpu.af & FLAG_CY) || (((a >> 4) & 0x0F) > 0x09)) {
+        correction |= 0x60;
+        cpu.af |= FLAG_CY;
+    } else {
+        cpu.af &= (~FLAG_CY);
+    }
 
     if(cpu.af & FLAG_N) a -= correction;
     else a += correction;
 
     if(!a) cpu.af |= FLAG_ZF;
     else cpu.af &= (~FLAG_ZF);
-
-    if(a > 0x99) cpu.af |= FLAG_CY;
-    else cpu.af &= (~FLAG_CY);
 
     cpu.af &= (~FLAG_H); 
 
@@ -1882,7 +1883,7 @@ void res_n_r() {
     uint8_t opcode = read_byte(cpu.pc+1);
 
     int reg = opcode & 7;
-    int n = (opcode >> 4) & 7;
+    int n = (opcode >> 3) & 7;
 
 #ifdef DISASM
     disasm_log("res %d, %s\n", n, registers[reg]);
@@ -2073,7 +2074,7 @@ void set_n_hl() {
 
 void res_n_hl() {
     uint8_t opcode = read_byte(cpu.pc+1);
-    int n = (opcode >> 4) & 7;
+    int n = (opcode >> 3) & 7;
 
 #ifdef DISASM
     disasm_log("res %d, (hl)\n", n);
