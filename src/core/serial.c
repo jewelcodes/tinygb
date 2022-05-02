@@ -5,7 +5,7 @@
 #include <tinygb.h>
 #include <ioports.h>
 
-#define SERIAL_LOG
+//#define SERIAL_LOG
 
 uint8_t sb = 0, sc = 0;
 

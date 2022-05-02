@@ -6,7 +6,7 @@
 #include <ioports.h>
 #include <string.h>
 
-#define SOUND_LOG
+//#define SOUND_LOG
 
 sound_t sound;
 

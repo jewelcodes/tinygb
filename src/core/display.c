@@ -7,7 +7,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define DISPLAY_LOG
+//#define DISPLAY_LOG
 
 /*
 
@@ -402,11 +402,17 @@ void render_line() {
 
         // here the background has been drawn, copy the visible part of it
         //write_log("[display] rendering background, SCY = %d, SCX = %d\n", display.scy, display.scx);
+        int temp_index = 0;
+        int bg_index = display.scy * 256;
 
         for(int y = 0; y < GB_HEIGHT; y++) {
             for(int x = 0; x < GB_WIDTH; x++) {
-                temp_framebuffer[(y * GB_WIDTH) + x] = background_buffer[((y + display.scy) * 256) + (x + display.scx)];
+                //temp_framebuffer[(y * GB_WIDTH) + x] = background_buffer[((y + display.scy) * 256) + (x + display.scx)];
+                temp_framebuffer[temp_index + x] = background_buffer[bg_index + x + display.scx];
             }
+
+            temp_index += GB_WIDTH;
+            bg_index += 256;
         }
 
     } else {
