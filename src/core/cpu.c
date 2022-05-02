@@ -1800,6 +1800,66 @@ void daa() {
     count_cycles(1);
 }
 
+void adc_hl() {
+#ifdef DISASM
+    disasm_log("adc (hl)\n");
+#endif
+
+    uint8_t a = read_reg8(REG_A);
+    uint8_t r = read_byte(cpu.hl);
+    uint8_t new = a + r;
+
+    if(cpu.af & FLAG_CY) new++;
+
+    cpu.af &= (~FLAG_N);
+
+    if(!new) cpu.af |= FLAG_ZF;
+    else cpu.af &= (~FLAG_ZF);
+
+    if((new & 0x0F) < (a & 0x0F)) cpu.af |= FLAG_H;
+    else cpu.af &= (~FLAG_H);
+
+    if(new < a) cpu.af |= FLAG_CY;
+    else cpu.af &= (~FLAG_CY);
+
+    write_reg8(REG_A, new);
+
+    cpu.pc++;
+    count_cycles(2);
+}
+
+void ret_nc() {
+#ifdef DISASM
+    disasm_log("ret nc\n");
+#endif
+
+    if(cpu.af & FLAG_CY) {
+        // C set; condition false
+        cpu.pc++;
+        count_cycles(2);
+    } else {
+        // C clear; condition true
+        cpu.pc = pop();
+        count_cycles(5);
+    }
+}
+
+void ret_c() {
+#ifdef DISASM
+    disasm_log("ret c\n");
+#endif
+
+    if(cpu.af & FLAG_CY) {
+        // C set; condition true
+        cpu.pc = pop();
+        count_cycles(5);
+    } else {
+        // C clear; condition false
+        cpu.pc++;
+        count_cycles(2);
+    }
+}
+
 /* 
     EXTENDED OPCODES
     these are all prefixed with 0xCB first
@@ -2049,7 +2109,7 @@ void (*opcodes[256])() = {
     ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_r, ld_r_hl, ld_r_r,  // 0x78
 
     add_r, add_r, add_r, add_r, add_r, add_r, add_hl, add_r,  // 0x80
-    adc_r, adc_r, adc_r, adc_r, adc_r, adc_r, NULL, adc_r,  // 0x88
+    adc_r, adc_r, adc_r, adc_r, adc_r, adc_r, adc_hl, adc_r,  // 0x88
     sub_r, sub_r, sub_r, sub_r, sub_r, sub_r, sub_hl, sub_r,  // 0x90
     sbc_a_r, sbc_a_r, sbc_a_r, sbc_a_r, sbc_a_r, sbc_a_r, NULL, sbc_a_r,  // 0x98
     and_r, and_r, and_r, and_r, and_r, and_r, NULL, and_r,  // 0xA0
@@ -2058,8 +2118,8 @@ void (*opcodes[256])() = {
     cp_r, cp_r, cp_r, cp_r, cp_r, cp_r, cp_hl, cp_r,  // 0xB8
     ret_nz, pop_r16, jp_nz_a16, jp_nn, call_nz, push_r16, add_d8, NULL,  // 0xC0
     ret_z, ret, jp_z_a16, ex_opcode, NULL, call_a16, NULL, NULL,  // 0xC8
-    NULL, pop_r16, NULL, NULL, NULL, push_r16, sub_d8, NULL,  // 0xD0
-    NULL, reti, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xD8
+    ret_nc, pop_r16, NULL, NULL, NULL, push_r16, sub_d8, NULL,  // 0xD0
+    ret_c, reti, NULL, NULL, NULL, NULL, NULL, NULL,  // 0xD8
     ldh_a8_a, pop_r16, ldh_c_a, NULL, NULL, push_r16, and_n, rst,  // 0xE0
     add_sp_s, jp_hl, ld_a16_a, NULL, NULL, NULL, xor_d8, rst,  // 0xE8
     ldh_a_a8, pop_af, ldh_a_c, di, NULL, push_af, or_d8, rst,  // 0xF0
