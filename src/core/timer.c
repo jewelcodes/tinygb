@@ -51,16 +51,12 @@ void timer_start() {
 uint8_t timer_read(uint16_t addr) {
     switch(addr) {
     case DIV:
-        write_log("[timer] read DIV register value 0x%02X\n", timer.div);
         return timer.div;
     case TIMA:
-        write_log("[timer] read TIMA register value 0x%02X\n", timer.tima);
         return timer.tima;
     case TMA:
-        write_log("[timer] read TMA register value 0x%02X\n", timer.tma);
         return timer.tma;
     case TAC:
-        write_log("[timer] read TAC register value 0x%02X\n", timer.tac);
         return timer.tac;
     default:
         write_log("[memory] unimplemented read from I/O port 0x%04X\n", addr);
