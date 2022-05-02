@@ -114,6 +114,7 @@ void sc_write(uint8_t);
 
 // timer
 void timer_write(uint16_t, uint8_t);
+uint8_t timer_read(uint16_t);
 void timer_cycle();
 
 // sound

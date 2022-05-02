@@ -47,6 +47,23 @@ void timer_start() {
     set_timer_freq(0);
 }
 
+uint8_t timer_read(uint16_t addr) {
+    switch(addr) {
+    case DIV:
+        return timer.div;
+    case TIMA:
+        return timer.tima;
+    case TMA:
+        return timer.tma;
+    case TAC:
+        return timer.tac;
+    default:
+        write_log("[memory] unimplemented read from I/O port 0x%04X\n", addr);
+        die(-1, NULL);
+        return 0xFF;
+    }
+}
+
 void timer_write(uint16_t addr, uint8_t byte) {
     switch(addr) {
     case DIV:
@@ -72,6 +89,7 @@ void timer_write(uint16_t addr, uint8_t byte) {
         write_log("[timer] write to TAC register value 0x%02X\n", byte);
 #endif
         timer.tac = byte;
+        set_timer_freq(byte & 3);
         break;
     default:
         write_log("[memory] unimplemented write to I/O port 0x%04X value 0x%02X\n", addr, byte);

@@ -153,6 +153,11 @@ uint8_t read_io(uint16_t addr) {
         return display_read(addr);
     case P1:
         return joypad_read(addr);
+    case DIV:
+    case TIMA:
+    case TMA:
+    case TAC:
+        return timer_read(addr);
     default:
         write_log("[memory] unimplemented read from IO port 0x%04X\n", addr);
         die(-1, NULL);
