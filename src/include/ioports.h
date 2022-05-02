@@ -115,3 +115,14 @@ typedef struct {
     uint8_t nr50, nr51, nr52;
     uint8_t wav[16];
 } sound_t;
+
+typedef struct {
+    int rom_bank, ram_bank, ram_enable, rom_ram_toggle;
+} mbc1_t;
+
+typedef struct {
+    int rom_bank, ram_rtc_bank, ram_rtc_enable, ram_rtc_toggle;
+    int latch_data;
+
+    int h, m, s, d, halt;
+} mbc3_t;

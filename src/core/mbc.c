@@ -3,6 +3,9 @@
    (c) 2022 by jewel */
 
 #include <tinygb.h>
+#include <ioports.h>
+
+//#define MBC_LOG
 
 // Memory Bank Controller Implementation
 
@@ -41,7 +44,82 @@
 
  */
 
-void mbc_start() {
+mbc1_t mbc1;
+mbc3_t mbc3;
+
+uint8_t *ex_ram;    // pointer to cart RAM
+
+void mbc_start(void *cart_ram) {
+    ex_ram = (uint8_t *)cart_ram;
+
+    switch(mbc_type) {
+    case 3:
+        mbc3.ram_rtc_bank = 0;
+        mbc3.rom_bank = 1;
+        mbc3.ram_rtc_enable = 1;
+        mbc3.ram_rtc_toggle = 0;    // RAM
+        break;
+    default:
+        write_log("[mbc] unimplemented MBC type %d\n", mbc_type);
+        die(-1, "");
+    }
+
     write_log("[mbc] MBC started\n");
 }
 
+uint8_t mbc_read(uint16_t addr) {
+    uint8_t *rom_bytes = (uint8_t *)rom;
+    switch(mbc_type) {
+    case 3:
+        if(addr >= 0x4000 && addr <= 0x7FFF) {
+            addr -= 0x4000;
+            return rom_bytes[(mbc3.rom_bank * 16384) + addr];
+        } else {
+            write_log("[mbc] unimplemented read at address 0x%04X in MBC%d\n", addr, mbc_type);
+            die(-1, NULL);
+            return 0xFF;    // unreachable
+        }
+        break;
+    default:
+        write_log("[mbc] unimplemented read at address 0x%04X in MBC%d\n", addr, mbc_type);
+        die(-1, NULL);
+        return 0xFF;    // unreachable
+    }
+}
+
+void mbc_write(uint16_t addr, uint8_t byte) {
+    switch(mbc_type) {
+    case 3:
+        if(addr >= 0x2000 && addr <= 0x3FFF) {
+            byte &= 0x7F;
+            if(!byte) byte = 1;
+
+            #ifdef MBC_LOG
+            write_log("[mbc] selecting ROM bank %d\n", byte);
+            #endif
+
+            mbc3.rom_bank = byte;
+        } else if(addr >= 0x4000 && addr <= 0x5FFF) {
+            byte &= 0x0F;
+
+            #ifdef MBC_LOG
+            if(byte < 3) {
+                write_log("[mbc] selecting RAM bank %d\n", byte);
+            } else if(byte >= 0x08 && byte <= 0x0C) {
+                write_log("[mbc] selecting RTC register 0x%02X\n", byte);
+            } else {
+                write_log("[mbc] selecting undefined RAM/RTC register %d, ignoring...\n", byte);
+            }
+            #endif
+
+            mbc3.ram_rtc_bank = byte;
+        } else {
+            write_log("[mbc] unimplemented write at address 0x%04X value 0x%02X in MBC%d\n", addr, byte, mbc_type);
+            die(-1, NULL);
+        }
+        break;
+    default:
+        write_log("[mbc] unimplemented write at address 0x%04X value 0x%02X in MBC%d\n", addr, byte, mbc_type);
+        die(-1, NULL);
+    }
+}

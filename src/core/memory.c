@@ -115,7 +115,7 @@ void memory_start() {
         write_log("[mbc] cartridge type is 0x%02X: no MBC\n", *cartridge_type);
     } else {
         write_log("[mbc] cartridge type is 0x%02X: MBC%d\n", *cartridge_type, mbc_type);
-        mbc_start();
+        mbc_start(ram + CART_RAM);
     }
 }
 
@@ -189,6 +189,8 @@ uint8_t read_byte(uint16_t addr) {
         return ie_read();
     } else if(addr >= 0x8000 && addr <= 0x9FFF) {
         return vram_read(addr);
+    } else if(addr <= 0x7FFF || (addr >= 0xA000 && addr <= 0xBFFF)) {
+        return mbc_read(addr);
     }
 
     write_log("[memory] unimplemented read at address 0x%04X in MBC%d ROM\n", addr, mbc_type);
@@ -308,16 +310,6 @@ void write_byte(uint16_t addr, uint8_t byte) {
         return write_wram(work_ram_bank, addr - 0xF000, byte); // echo bank n
     } else if(addr >= 0xFF80 && addr <= 0xFFFE) {
         return write_hram(addr - 0xFF80, byte);
-    } else if(addr <= 0x7FFF) {
-        switch(mbc_type) {
-        case 0:
-            write_log("[memory] undefined write at address 0x%04X value 0x%02X in a ROM without an MBC, ignoring...\n", addr, byte);
-            return;
-        default:
-            write_log("[memory] unimplemented write at address 0x%04X value 0x%02X in MBC%d ROM\n", addr, byte, mbc_type);
-            die(-1, NULL);
-            break;
-        }
     } else if (addr >= 0xFF00 && addr <= 0xFF7F) {
         return write_io(addr, byte);
     } else if(addr == 0xFFFF) {
@@ -329,6 +321,8 @@ void write_byte(uint16_t addr, uint8_t byte) {
         return;
     } else if(addr >= 0xFE00 && addr <= 0xFE9F) {
         return write_oam(addr - 0xFE00, byte);        
+    } else if(addr <= 0x7FFF || (addr >= 0xA000 && addr <= 0xBFFF)) {
+        return mbc_write(addr, byte);
     }
 
     write_log("[memory] unimplemented write at address 0x%04X value 0x%02X in MBC%d ROM\n", addr, byte, mbc_type);
