@@ -186,6 +186,8 @@ uint8_t read_byte(uint16_t addr) {
         return read_io(addr);
     } else if(addr == 0xFFFF) {
         return ie_read();
+    } else if(addr >= 0x8000 && addr <= 0x9FFF) {
+        return vram_read(addr);
     }
 
     write_log("[memory] unimplemented read at address 0x%04X in MBC%d ROM\n", addr, mbc_type);

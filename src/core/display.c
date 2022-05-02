@@ -393,7 +393,7 @@ void render_line() {
         uint8_t *bg_map;
         if(display.lcdc & 0x08) {
             bg_map = vram + 0x1C00;     // 0x9C00-0x9FFF
-            
+
             for(int y = 0; y < 32; y++) {
                 for(int x = 0; x < 32; x++) {
                     plot_bg_tile(x, y, *bg_map, bg_win_tiles);
@@ -556,4 +556,13 @@ void vram_write(uint16_t addr, uint8_t byte) {
     ptr += (8192 * display.vbk);    // for CGB banking
 
     *ptr = byte;
+}
+
+uint8_t vram_read(uint16_t addr) {
+    addr -= 0x8000;
+
+    uint8_t *ptr = (uint8_t *)vram + addr;
+    ptr += (8192 * display.vbk);
+
+    return *ptr;
 }
