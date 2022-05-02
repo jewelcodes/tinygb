@@ -35,6 +35,74 @@ void sound_start() {
     write_log("[sound] started sound device\n");
 }
 
+uint8_t sound_read(uint16_t addr) {
+    switch(addr) {
+    case NR10:
+        return sound.nr10;
+    case NR11:
+        return sound.nr11;
+    case NR12:
+        return sound.nr12;
+    case NR13:
+        return sound.nr13;
+    case NR14:
+        return sound.nr14;
+    case NR21:
+        return sound.nr21;
+    case NR22:
+        return sound.nr22;
+    case NR23:
+        return sound.nr23;
+    case NR24:
+        return sound.nr24;
+    case NR30:
+        return sound.nr30;
+    case NR31:
+        return sound.nr31;
+    case NR32:
+        return sound.nr32;
+    case NR33:
+        return sound.nr33;
+    case NR34:
+        return sound.nr34;
+    case NR41:
+        return sound.nr41;
+    case NR42:
+        return sound.nr42;
+    case NR43:
+        return sound.nr43;
+    case NR44:
+        return sound.nr44;
+    case NR50:
+        return sound.nr50;
+    case NR51:
+        return sound.nr51;
+    case NR52:
+        return sound.nr52;
+    case WAV00:
+    case WAV01:
+    case WAV02:
+    case WAV03:
+    case WAV04:
+    case WAV05:
+    case WAV06:
+    case WAV07:
+    case WAV08:
+    case WAV09:
+    case WAV10:
+    case WAV11:
+    case WAV12:
+    case WAV13:
+    case WAV14:
+    case WAV15:
+        return sound.wav[addr-WAV00];
+    default:
+        write_log("[memory] unimplemented read from I/O port 0x%04X\n", addr);
+        die(-1, NULL);
+        return 0xFF;
+    }
+}
+
 void sound_write(uint16_t addr, uint8_t byte) {
     switch(addr) {
     case NR50:
