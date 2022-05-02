@@ -393,9 +393,13 @@ void render_line() {
         uint8_t *bg_map;
         if(display.lcdc & 0x08) {
             bg_map = vram + 0x1C00;     // 0x9C00-0x9FFF
-
-            // TODO 
-            die(-1, "unimplemented 0x9C00 signed tile numbering\n");
+            
+            for(int y = 0; y < 32; y++) {
+                for(int x = 0; x < 32; x++) {
+                    plot_bg_tile(x, y, *bg_map, bg_win_tiles);
+                    bg_map++;
+                }
+            }
         } else {
             bg_map = vram + 0x1800;     // 0x9800-0x9BFF
 
