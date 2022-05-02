@@ -1770,6 +1770,36 @@ void sub_hl() {
     count_cycles(2);
 }
 
+void daa() {
+#ifdef DISASM
+    disasm_log("daa\n");
+#endif
+
+    uint8_t a = read_reg8(REG_A);
+    uint8_t correction = 0;
+
+    if((cpu.af & FLAG_H) || ((a & 0x0F) > 0x09))
+        correction |= 0x06;
+
+    if((cpu.af & FLAG_CY) || (((a >> 4) & 0x0F) > 0x09))
+        correction |= 0x06;
+
+    if(cpu.af & FLAG_N) a -= correction;
+    else a += correction;
+
+    if(!a) cpu.af |= FLAG_ZF;
+    else cpu.af &= (~FLAG_ZF);
+
+    if(a > 0x99) cpu.af |= FLAG_CY;
+    else cpu.af &= (~FLAG_CY);
+
+    cpu.af &= (~FLAG_H); 
+
+    write_reg8(REG_A, a);
+    cpu.pc++;
+    count_cycles(1);
+}
+
 /* 
     EXTENDED OPCODES
     these are all prefixed with 0xCB first
@@ -2003,7 +2033,7 @@ void (*opcodes[256])() = {
     NULL, add_hl_r16, ld_a_bc, dec_r16, inc_r, dec_r, ld_r_xx, NULL,  // 0x08
     NULL, ld_r_xxxx, ld_de_a, inc_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x10
     jr_e, add_hl_r16, ld_a_de, dec_r16, inc_r, dec_r, ld_r_xx, rra,  // 0x18
-    jr_nz, ld_r_xxxx, ldi_hl_a, inc_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x20
+    jr_nz, ld_r_xxxx, ldi_hl_a, inc_r16, NULL, dec_r, ld_r_xx, daa,  // 0x20
     jr_z, add_hl_r16, ldi_a_hl, dec_r16, inc_r, dec_r, ld_r_xx, cpl,  // 0x28
     jr_nc, ld_r_xxxx, ldd_hl_a, inc_r16, inc_hl, dec_hl, ld_hl_n, NULL,  // 0x30
     jr_c, add_hl_r16, ldd_a_hl, dec_r16, inc_r, dec_r, ld_r_xx, NULL,  // 0x38
