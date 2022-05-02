@@ -77,7 +77,7 @@ void memory_start() {
     case 0x00:
         mbc_type = 0;
         break;
-    case 0x01:
+    /*case 0x01:
     case 0x02:
     case 0x03:
         mbc_type = 1;
@@ -85,7 +85,7 @@ void memory_start() {
     case 0x05:
     case 0x06:
         mbc_type = 2;
-        break;
+        break;*/
     case 0x0F:
     case 0x10:
     case 0x11:
@@ -93,7 +93,7 @@ void memory_start() {
     case 0x13:
         mbc_type = 3;
         break;
-    case 0x15:
+    /*case 0x15:
     case 0x16:
     case 0x17:
         mbc_type = 4;
@@ -105,7 +105,7 @@ void memory_start() {
     case 0x1D:
     case 0x1E:
         mbc_type = 5;
-        break;
+        break;*/
     default:
         die(-1, "[mbc] cartridge type is 0x%02X: unimplemented\n", *cartridge_type);
         break;
@@ -115,6 +115,7 @@ void memory_start() {
         write_log("[mbc] cartridge type is 0x%02X: no MBC\n", *cartridge_type);
     } else {
         write_log("[mbc] cartridge type is 0x%02X: MBC%d\n", *cartridge_type, mbc_type);
+        mbc_start();
     }
 }
 

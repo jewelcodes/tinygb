@@ -76,6 +76,7 @@ extern int scaling, frameskip;
 extern SDL_Window *window;
 extern SDL_Surface *surface;
 extern timing_t timing;
+extern int mbc_type;
 
 void open_log();
 void write_log(const char *, ...);
@@ -95,6 +96,9 @@ uint8_t read_byte(uint16_t);
 uint16_t read_word(uint16_t);
 void write_byte(uint16_t, uint8_t);
 void copy_oam(void *);
+void mbc_start();
+void mbc_write(uint16_t, uint8_t);
+uint8_t mbc_read(uint16_t);
 
 // interrupts
 uint8_t if_read();
