@@ -89,6 +89,9 @@ uint8_t mbc_read(uint16_t addr) {
 
 void mbc_write(uint16_t addr, uint8_t byte) {
     switch(mbc_type) {
+    case 0:
+        write_log("[mbc] unimplemented write at address 0x%04X value 0x%02X in MBC%d\n", addr, byte, mbc_type);
+        break;
     case 3:
         if(addr >= 0x2000 && addr <= 0x3FFF) {
             byte &= 0x7F;
