@@ -51,12 +51,24 @@ void timer_start() {
 uint8_t timer_read(uint16_t addr) {
     switch(addr) {
     case DIV:
+#ifdef TIMER_LOG
+        write_log("[timer] read value 0x%02X from DIV register\n", timer.div);
+#endif
         return timer.div;
     case TIMA:
+#ifdef TIMER_LOG
+        write_log("[timer] read value 0x%02X from TIMA register\n", timer.tima);
+#endif
         return timer.tima;
     case TMA:
+#ifdef TIMER_LOG
+        write_log("[timer] read value 0x%02X from TMA register\n", timer.tma);
+#endif
         return timer.tma;
     case TAC:
+#ifdef TIMER_LOG
+        write_log("[timer] read value 0x%02X from TAC register\n", timer.tac);
+#endif
         return timer.tac;
     default:
         write_log("[memory] unimplemented read from I/O port 0x%04X\n", addr);
@@ -68,15 +80,27 @@ uint8_t timer_read(uint16_t addr) {
 void timer_write(uint16_t addr, uint8_t byte) {
     switch(addr) {
     case DIV:
+#ifdef TIMER_LOG
+        write_log("[timer] write to DIV register; clearing to zero\n");
+#endif
         timer.div = 0;      // writing to DIV clears it to zero
         break;
     case TIMA:
+#ifdef TIMER_LOG
+        write_log("[timer] write to TIMA register value 0x%02X\n", byte);
+#endif
         timer.tima = byte;
         break;
     case TMA:
+#ifdef TIMER_LOG
+        write_log("[timer] write to TMA register value 0x%02X\n", byte);
+#endif
         timer.tma = byte;
         break;
     case TAC:
+#ifdef TIMER_LOG
+        write_log("[timer] write to TAC register value 0x%02X\n", byte);
+#endif
         timer.tac = byte;
         set_timer_freq(byte & 3);
         break;
@@ -116,7 +140,8 @@ void timer_cycle() {
         timer.tima++;
         if(!timer.tima) {
             timer.tima = timer.tma;
-            // TODO: timer interrupt
+            //write_log("[timer] sending timer interrupt\n");
+            send_interrupt(2);
         }
     }
 }
