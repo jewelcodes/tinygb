@@ -77,12 +77,12 @@ void memory_start() {
     case 0x00:
         mbc_type = 0;
         break;
-    /*case 0x01:
+    case 0x01:
     case 0x02:
     case 0x03:
         mbc_type = 1;
         break;
-    case 0x05:
+    /*case 0x05:
     case 0x06:
         mbc_type = 2;
         break;*/
