@@ -1728,7 +1728,7 @@ void rlca() {
     if(a & 0x80) cpu.af |= FLAG_CY;
     else cpu.af &= (~FLAG_CY);
 
-    a = a << 1;
+    a <<= 1;
     if(cpu.af & FLAG_CY) a |= 0x01;
 
     write_reg8(REG_A, a);
@@ -2032,8 +2032,8 @@ void bit_n_hl() {
     cpu.af |= FLAG_H;
 
     uint8_t byte = read_byte(cpu.hl);
-    if(byte & (1 << n)) cpu.af |= FLAG_ZF;
-    else cpu.af &= (~FLAG_ZF);
+    if(byte & (1 << n)) cpu.af &= (~FLAG_ZF);
+    else cpu.af |= FLAG_ZF;
 
     cpu.pc += 2;
     count_cycles(3);
