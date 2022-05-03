@@ -66,8 +66,8 @@
 #define BGP     0xFF47
 #define OBP0    0xFF48
 #define OBP1    0xFF49
-#define WX      0xFF4A
-#define WY      0xFF4B
+#define WY      0xFF4A
+#define WX      0xFF4B
 #define VBK     0xFF4F
 #define HDMA1   0xFF51
 #define HDMA2   0xFF52

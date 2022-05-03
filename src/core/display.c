@@ -7,7 +7,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-//#define DISPLAY_LOG
+#define DISPLAY_LOG
 
 /*
 
@@ -256,15 +256,17 @@ void plot_bg_tile(int x, int y, uint8_t tile, uint8_t *tile_data) {
 
     if(display.lcdc & 0x10) ptr = tile_data + (tile * 16);  // normal positive
     else {
+        tile_data += 0x800;     // to 0x9000
+
         if(tile & 0x80) {
             // negative
             positive_tile = ~tile;
             positive_tile++;
 
-            ptr = tile_data + 0x800 - (positive_tile * 16);
+            ptr = tile_data - (positive_tile * 16);
         } else {
             // positive
-            ptr = tile_data + (tile * 16) + 0x800;  // start at 0x9000
+            ptr = tile_data + (tile * 16);
         }
     }
 
@@ -423,7 +425,39 @@ void render_line() {
         }
     }
 
-    // TODO: implement window layer here before object layer
+    // window layer on top of the background
+    if(display.lcdc & 0x20 && display.wx <= 166 && display.wy <= 143) {
+        // window enabled
+        uint8_t *win_map;
+        if(display.lcdc & 0x40) win_map = vram + 0x1C00;    // 0x9C00-0x9FFF
+        else win_map = vram + 0x1800;   // 0x9800-0x9BFF
+
+        // windows have the same format as backgrounds
+        for(int y = 0; y < 32; y++) {
+            for(int x = 0; x < 32; x++) {
+                plot_bg_tile(x, y, *win_map, bg_win_tiles);
+                win_map++;
+            }
+        }
+
+        // draw the window
+        int wx;
+        if(display.wx <= 7) wx = 0;
+        else wx = display.wx - 7;
+
+        int wy = display.wy;
+        int temp_index = (wy * GB_WIDTH) + (wx);
+        int bg_index = 0;
+
+        for(int y = 0; y < GB_HEIGHT - wy; y++) {
+            for(int x = 0; x < GB_WIDTH - wx; x++) {
+                temp_framebuffer[temp_index + x] = background_buffer[bg_index + x];
+            }
+
+            temp_index += GB_WIDTH;
+            bg_index += 256;
+        }
+    }
 
     // object layer
     if(display.lcdc & 0x02) {
@@ -455,7 +489,7 @@ void display_cycle() {
         uint16_t dma_src = display.dma << 8;
 
 #ifdef DISPLAY_LOG
-        write_log("[display] DMA transfer from 0x%04X to sprite OAM region\n", dma_src);
+        //write_log("[display] DMA transfer from 0x%04X to sprite OAM region\n", dma_src);
 #endif
 
         for(int i = 0; i < OAM_SIZE; i++) {
