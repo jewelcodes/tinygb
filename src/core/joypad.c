@@ -35,6 +35,14 @@ uint8_t joypad_read(uint16_t addr) {
 }
 
 void joypad_write(uint16_t addr, uint8_t byte) {
+    if(is_sgb && sgb_active) return sgb_write(byte);
+
+    if(is_sgb) {
+        if(!(byte & 0x20) && !(byte & 0x10)) {
+            return sgb_write(byte);
+        }
+    }
+
     byte = ~byte;
     if(byte & 0x20) {
         // button keys
