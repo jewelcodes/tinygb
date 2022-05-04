@@ -4,6 +4,9 @@
 
 #include <tinygb.h>
 #include <ioports.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 
 //#define MBC_LOG
 
@@ -48,9 +51,40 @@ mbc1_t mbc1;
 mbc3_t mbc3;
 
 uint8_t *ex_ram;    // pointer to cart RAM
+int ex_ram_size;
+
+char *ex_ram_filename;
 
 void mbc_start(void *cart_ram) {
+    ex_ram_filename = calloc(strlen(rom_filename) + 5, 1);
+    if(!ex_ram_filename) {
+        write_log("[mbc] unable to allocate memory for filename\n");
+        die(-1, "");
+    }
+
+    strcpy(ex_ram_filename, rom_filename);
+    strcpy(ex_ram_filename+strlen(rom_filename), ".mbc");
+
     ex_ram = (uint8_t *)cart_ram;
+
+    uint8_t *rom_bytes = (uint8_t *)rom;
+    switch(rom_bytes[0x149]) {
+    case 0:
+        ex_ram_size = 0;
+        break;
+    case 1:
+        ex_ram_size = 2048;     // bytes
+        break;
+    case 2:
+        ex_ram_size = 8192;     // bytes
+        break;
+    case 3:
+        ex_ram_size = 32768;
+        break;
+    default:
+        write_log("[mbc] undefined RAM size value 0x%02X, assuming 32 KB RAM\n", rom_bytes[0x149]);
+        ex_ram_size = 32768;
+    }
 
     switch(mbc_type) {
     case 1:
@@ -70,7 +104,44 @@ void mbc_start(void *cart_ram) {
         die(-1, "");
     }
 
-    write_log("[mbc] MBC started\n");
+    write_log("[mbc] MBC started with %d KiB of external RAM\n", ex_ram_size/1024);
+    if(ex_ram_size) {
+        write_log("[mbc] battery-backed RAM will read from and dumped to %s\n", ex_ram_filename);
+    }
+
+    // read ram file
+    FILE *file = fopen(ex_ram_filename, "r");
+    if(!file) {
+        write_log("[mbc] unable to open %s for reading, assuming no RAM file\n", ex_ram_filename);
+        return;
+    }
+
+    if(fread(ex_ram, 1, ex_ram_size, file) != ex_ram_size) {
+        write_log("[mbc] unable to read from file %s, assuming no RAM file\n", ex_ram_filename);
+        memset(ex_ram, 0, ex_ram_size);
+        fclose(file);
+        return;
+    }
+
+    fclose(file);
+}
+
+void write_ramfile() {
+    FILE *file = fopen(ex_ram_filename, "w");
+    if(!file) {
+        write_log("[mbc] unable to open %s for writing\n", ex_ram_filename);
+        return;
+    }
+
+    if(fwrite(ex_ram, 1, ex_ram_size, file) != ex_ram_size) {
+        write_log("[mbc] unable to write to file %s\n", ex_ram_filename);
+        fclose(file);
+        return;
+    }
+
+    fflush(file);
+    fclose(file);
+    write_log("[mbc] wrote RAM file to %s\n", ex_ram_filename);
 }
 
 // MBC3 functions here
@@ -136,6 +207,9 @@ inline void mbc3_write(uint16_t addr, uint8_t byte) {
             #ifdef MBC_LOG
             write_log("[mbc] disabled access to external RAM and RTC\n");
             #endif
+
+            // dump the ram file here
+            write_ramfile();
         }
     } else if(addr >= 0xA000 && addr <= 0xBFFF) {
         if(!mbc3.ram_rtc_enable) {
