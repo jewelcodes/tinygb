@@ -183,6 +183,10 @@ uint8_t display_read(uint16_t addr) {
         return display.obp0;
     case OBP1:
         return display.obp1;
+    case WX:
+        return display.wx;
+    case WY:
+        return display.wy;
     default:
         write_log("[memory] unimplemented read from IO port 0x%04X\n", addr);
         die(-1, NULL);
@@ -226,7 +230,7 @@ void update_framebuffer() {
         die(-1, "unimplemented non 32-bpp surfaces\n");
     }
 
-    framecount++;
+    //framecount++;
     if(framecount > frameskip) {
         SDL_UpdateWindowSurface(window);
         framecount = 0;
@@ -239,7 +243,7 @@ void plot_bg_tile(int is_window, int x, int y, uint8_t tile, uint8_t *tile_data)
     int yp = y << 3;
 
     if(!is_window) {
-        if(!(display.ly >= (yp+display.scy) && display.ly <= (yp+display.scy+8))) return;   // save a fuckton of performance
+        if(!((display.ly+display.scy) >= yp && (display.ly+display.scy) <= (yp+8))) return;   // save a fuckton of performance
     } else {
         if(xp >= GB_WIDTH || yp >= GB_HEIGHT) return;
         if(!(display.ly >= (yp+display.wy) && display.ly <= (yp+display.wy+8))) return;
@@ -411,16 +415,31 @@ void render_line() {
         // here the background has been drawn, copy the visible part of it
         //write_log("[display] rendering background, SCY = %d, SCX = %d\n", display.scy, display.scx);
         int temp_index = 0;
-        int bg_index = display.scy * 256;
+        unsigned int bg_index = display.scy * 256;
+        unsigned int bg_x = display.scx, bg_y = display.scy;
 
         for(int y = 0; y < GB_HEIGHT; y++) {
-            for(int x = 0; x < GB_WIDTH; x++) {
-                //temp_framebuffer[(y * GB_WIDTH) + x] = background_buffer[((y + display.scy) * 256) + (x + display.scx)];
-                temp_framebuffer[temp_index + x] = background_buffer[bg_index + x + display.scx];
+            if(bg_y > 255) {
+                bg_y = 0;
             }
 
+            bg_x = display.scx;
+            bg_index = (bg_y * 256) + bg_x;
+
+            for(int x = 0; x < GB_WIDTH; x++) {
+                if(bg_x > 255) {
+                    bg_index -= 256;
+                    bg_x = 0;
+                }
+
+                //temp_framebuffer[(y * GB_WIDTH) + x] = background_buffer[((y + display.scy) * 256) + (x + display.scx)];
+                temp_framebuffer[temp_index+x] = background_buffer[bg_index+x];
+
+                bg_x++;
+            }
+ 
             temp_index += GB_WIDTH;
-            bg_index += 256;
+            bg_y++;
         }
 
     } else {
@@ -542,7 +561,7 @@ void display_cycle() {
             display.stat |= 3;
 
             // complete one line
-            render_line();
+            if(framecount > frameskip) render_line();
         } else if(display_cycles <= 455) {
             // mode 0
             display.stat &= 0xFC;
@@ -562,6 +581,7 @@ void display_cycle() {
 
                 // update the actual screen
                 update_framebuffer();
+                framecount++;
             } else {
                 // return to mode zero
                 display.stat &= 0xFC;
