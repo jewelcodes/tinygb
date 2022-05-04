@@ -252,8 +252,36 @@ void plot_bg_tile(int is_window, int x, int y, uint8_t tile, uint8_t *tile_data)
     int xp = x << 3;    // x8
     int yp = y << 3;
 
+    int bgy;
+
     if(!is_window) {
-        if(!((display.ly+display.scy) >= yp && (display.ly+display.scy) <= (yp+8))) return;   // save a fuckton of performance
+        if(display.scy >= 113) {    // 255-143
+            // an wraparound will inevitably occur
+            int bg_line = display.scy + display.ly;
+            int last_bg_line = GB_HEIGHT - (256-display.scy);
+            last_bg_line -= 8;
+
+            int wrapped_ly;
+
+            if(bg_line >= 256) {
+                // wrap occured
+                bg_line -= 256;
+
+                wrapped_ly = display.ly - (256 - display.scy);
+                if(!((wrapped_ly) >= yp && (wrapped_ly) <= (yp+8))) {
+                    return;
+                }
+            } else {
+                // no wrap
+                if(!((display.ly+display.scy) >= yp && (display.ly+display.scy) <= (yp+8))) {
+                    return;   // save a fuckton of performance
+                }
+            }
+        } else {
+            if(!((display.ly+display.scy) >= yp && (display.ly+display.scy) <= (yp+8))) {
+                return;   // save a fuckton of performance
+            }
+        }
     } else {
         if(xp >= GB_WIDTH || yp >= GB_HEIGHT) return;
         if(!(display.ly >= (yp+display.wy) && display.ly <= (yp+display.wy+8))) return;
