@@ -2133,6 +2133,55 @@ void sbc_a_hl() {
     count_cycles(2);
 }
 
+void xor_hl() {
+#ifdef DISASM
+    disasm_log("xor (hl)\n");
+#endif
+
+    uint8_t val = read_byte(cpu.hl);
+    uint8_t a = read_reg8(REG_A);
+
+    a ^= val;
+
+    if(!a) cpu.af |= FLAG_ZF;
+    else cpu.af &= (~FLAG_ZF);
+
+    cpu.af &= ~(FLAG_N | FLAG_H | FLAG_CY);
+
+    write_reg8(REG_A, a);
+
+    cpu.pc++;
+    count_cycles(2);
+}
+
+void adc_d8() {
+    uint8_t d8 = read_byte(cpu.pc+1);
+
+#ifdef DISASM
+    disasm_log("adc 0x%02X\n", d8);
+#endif
+
+    uint8_t a = read_reg8(REG_A);
+    uint8_t new = a + d8;
+    if(cpu.af & FLAG_CY) new++;
+
+    cpu.af &= (~FLAG_N);
+
+    if(!new) cpu.af |= FLAG_ZF;
+    else cpu.af &= (~FLAG_ZF);
+
+    if((new & 0x0F) < (a & 0x0F)) cpu.af |= FLAG_H;
+    else cpu.af &= (~FLAG_H);
+
+    if(new < a) cpu.af |= FLAG_CY;
+    else cpu.af &= (~FLAG_CY);
+
+    write_reg8(REG_A, new);
+
+    cpu.pc += 2;
+    count_cycles(2);
+}
+
 /* 
     EXTENDED OPCODES
     these are all prefixed with 0xCB first
@@ -2562,11 +2611,11 @@ void (*opcodes[256])() = {
     sub_r, sub_r, sub_r, sub_r, sub_r, sub_r, sub_hl, sub_r,  // 0x90
     sbc_a_r, sbc_a_r, sbc_a_r, sbc_a_r, sbc_a_r, sbc_a_r, sbc_a_hl, sbc_a_r,  // 0x98
     and_r, and_r, and_r, and_r, and_r, and_r, and_hl, and_r,  // 0xA0
-    xor_r, xor_r, xor_r, xor_r, xor_r, xor_r, NULL, xor_r,  // 0xA8
+    xor_r, xor_r, xor_r, xor_r, xor_r, xor_r, xor_hl, xor_r,  // 0xA8
     or_r, or_r, or_r, or_r, or_r, or_r, or_hl, or_r,  // 0xB0
     cp_r, cp_r, cp_r, cp_r, cp_r, cp_r, cp_hl, cp_r,  // 0xB8
     ret_nz, pop_r16, jp_nz_a16, jp_nn, call_nz, push_r16, add_d8, rst,  // 0xC0
-    ret_z, ret, jp_z_a16, ex_opcode, call_z, call_a16, NULL, rst,  // 0xC8
+    ret_z, ret, jp_z_a16, ex_opcode, call_z, call_a16, adc_d8, rst,  // 0xC8
     ret_nc, pop_r16, jp_nc_a16, NULL, call_nc, push_r16, sub_d8, rst,  // 0xD0
     ret_c, reti, jp_c_a16, NULL, call_c, NULL, sbc_a_a8, rst,  // 0xD8
     ldh_a8_a, pop_r16, ldh_c_a, NULL, NULL, push_r16, and_n, rst,  // 0xE0
