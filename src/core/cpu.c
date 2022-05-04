@@ -2104,6 +2104,35 @@ void rla() {
     count_cycles(1);
 }
 
+void sbc_a_hl() {
+#ifdef DISASM
+    disasm_log("sbc a, (hl)\n");
+#endif
+
+    uint8_t a = read_reg8(REG_A);
+    uint8_t r;
+    r = read_byte(cpu.hl);
+
+    a -= r;
+    if(cpu.af & FLAG_CY) a--;
+
+    cpu.af |= FLAG_N;
+
+    if(!a) cpu.af |= FLAG_ZF;
+    else cpu.af &= (~FLAG_ZF);
+
+    if(a > read_reg8(REG_A)) cpu.af |= FLAG_CY;
+    else cpu.af &= (~FLAG_CY);
+
+    if((a & 0x0F) < (read_reg8(REG_A) & 0x0F)) cpu.af |= FLAG_H;
+    else cpu.af &= (~FLAG_H);
+
+    write_reg8(REG_A, a);
+
+    cpu.pc++;
+    count_cycles(2);
+}
+
 /* 
     EXTENDED OPCODES
     these are all prefixed with 0xCB first
@@ -2531,7 +2560,7 @@ void (*opcodes[256])() = {
     add_r, add_r, add_r, add_r, add_r, add_r, add_hl, add_r,  // 0x80
     adc_r, adc_r, adc_r, adc_r, adc_r, adc_r, adc_hl, adc_r,  // 0x88
     sub_r, sub_r, sub_r, sub_r, sub_r, sub_r, sub_hl, sub_r,  // 0x90
-    sbc_a_r, sbc_a_r, sbc_a_r, sbc_a_r, sbc_a_r, sbc_a_r, NULL, sbc_a_r,  // 0x98
+    sbc_a_r, sbc_a_r, sbc_a_r, sbc_a_r, sbc_a_r, sbc_a_r, sbc_a_hl, sbc_a_r,  // 0x98
     and_r, and_r, and_r, and_r, and_r, and_r, and_hl, and_r,  // 0xA0
     xor_r, xor_r, xor_r, xor_r, xor_r, xor_r, NULL, xor_r,  // 0xA8
     or_r, or_r, or_r, or_r, or_r, or_r, or_hl, or_r,  // 0xB0
