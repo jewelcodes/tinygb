@@ -233,12 +233,17 @@ void update_framebuffer() {
     }
 }
 
-void plot_bg_tile(int x, int y, uint8_t tile, uint8_t *tile_data) {
+void plot_bg_tile(int is_window, int x, int y, uint8_t tile, uint8_t *tile_data) {
     // x and y are in tiles, not pixels
     int xp = x << 3;    // x8
     int yp = y << 3;
 
-    if(!(display.ly >= (yp+display.scy) && display.ly <= (yp+display.scy+8))) return;   // save a fuckton of performance
+    if(!is_window) {
+        if(!(display.ly >= (yp+display.scy) && display.ly <= (yp+display.scy+8))) return;   // save a fuckton of performance
+    } else {
+        if(xp >= GB_WIDTH || yp >= GB_HEIGHT) return;
+        if(!(display.ly >= (yp+display.wy) && display.ly <= (yp+display.wy+8))) return;
+    }
 
     uint32_t color;
     uint8_t data, color_index;
@@ -398,7 +403,7 @@ void render_line() {
 
         for(int y = 0; y < 32; y++) {
             for(int x = 0; x < 32; x++) {
-                plot_bg_tile(x, y, *bg_map, bg_win_tiles);
+                plot_bg_tile(0, x, y, *bg_map, bg_win_tiles);
                 bg_map++;
             }
         }
@@ -435,7 +440,7 @@ void render_line() {
         // windows have the same format as backgrounds
         for(int y = 0; y < 32; y++) {
             for(int x = 0; x < 32; x++) {
-                plot_bg_tile(x, y, *win_map, bg_win_tiles);
+                plot_bg_tile(1, x, y, *win_map, bg_win_tiles);
                 win_map++;
             }
         }
