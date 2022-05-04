@@ -1934,6 +1934,69 @@ void jp_c_a16() {
     }
 }
 
+void jp_nc_a16() {
+    uint16_t new_pc = read_word(cpu.pc+1);
+
+#ifdef DISASM
+    disasm_log("jp nc 0x%04X\n", new_pc);
+#endif
+
+    if(!(cpu.af & FLAG_CY)) {
+        // C clear, condition true
+        cpu.pc = new_pc;
+        count_cycles(4);
+    } else {
+        // C set, condition false
+        cpu.pc += 3;
+        count_cycles(3);
+    }
+}
+
+void rrca() {
+#ifdef DISASM
+    disasm_log("rrca\n");
+#endif
+
+    uint8_t r = read_reg8(REG_A);
+    if(r & 0x01) cpu.af |= FLAG_CY;
+    else cpu.af &= (~FLAG_CY);
+
+    r >>= 1;
+
+    if(cpu.af & FLAG_CY) r |= 0x80;
+
+    if(!r) cpu.af |= FLAG_ZF;
+    else cpu.af &= (~FLAG_ZF);
+
+    cpu.af &= ~(FLAG_N | FLAG_H);
+
+    write_reg8(REG_A, r);
+    cpu.pc++;
+    count_cycles(1);
+}
+
+void and_hl() {
+#ifdef DISASM
+    disasm_log("and (hl)\n");
+#endif
+
+    uint8_t val = read_byte(cpu.hl);
+    uint8_t a = read_reg8(REG_A);
+
+    a &= val;
+
+    if(!a) cpu.af |= FLAG_ZF;
+    else cpu.af &= (~FLAG_ZF);
+
+    cpu.af &= ~(FLAG_N | FLAG_CY);
+    cpu.af |= FLAG_H;
+
+    write_reg8(REG_A, a);
+
+    cpu.pc++;
+    count_cycles(2);
+}
+
 /* 
     EXTENDED OPCODES
     these are all prefixed with 0xCB first
@@ -2218,11 +2281,81 @@ void sra_r() {
     count_cycles(2);
 }
 
+void rrc_r() {
+    uint8_t opcode = read_byte(cpu.pc+1);
+    int reg = opcode & 7;
+
+#ifdef DISASM
+    disasm_log("rrc %s\n", registers[reg]);
+#endif
+
+    uint8_t r = read_reg8(reg);
+    if(r & 0x01) cpu.af |= FLAG_CY;
+    else cpu.af &= (~FLAG_CY);
+
+    r >>= 1;
+
+    if(cpu.af & FLAG_CY) r |= 0x80;
+
+    if(!r) cpu.af |= FLAG_ZF;
+    else cpu.af &= (~FLAG_ZF);
+
+    cpu.af &= ~(FLAG_N | FLAG_H);
+
+    write_reg8(reg, r);
+    cpu.pc += 2;
+    count_cycles(2);
+}
+
+void rrc_hl() {
+#ifdef DISASM
+    disasm_log("rrc (hl)\n");
+#endif
+
+    uint8_t r = read_byte(cpu.hl);
+    if(r & 0x01) cpu.af |= FLAG_CY;
+    else cpu.af &= (~FLAG_CY);
+
+    r >>= 1;
+
+    if(cpu.af & FLAG_CY) r |= 0x80;
+
+    if(!r) cpu.af |= FLAG_ZF;
+    else cpu.af &= (~FLAG_ZF);
+
+    cpu.af &= ~(FLAG_N | FLAG_H);
+
+    write_byte(cpu.hl, r);
+    cpu.pc += 2;
+    count_cycles(4);
+}
+
+void swap_hl() {
+#ifdef DISASM
+    disasm_log("swap (hl)\n");
+#endif
+
+    uint8_t r = read_byte(cpu.hl);
+
+    uint8_t lo, hi;
+    lo = r & 0x0F;
+    hi = (r >> 4) & 0x0F;
+
+    uint8_t new_r = (lo << 4) | hi;
+    write_byte(cpu.hl, new_r);
+
+    if(!new_r) cpu.af |= FLAG_ZF;
+    cpu.af &= ~(FLAG_N | FLAG_H | FLAG_CY);
+
+    cpu.pc += 2;
+    count_cycles(4);
+}
+
 // lookup tables
 void (*opcodes[256])() = {
     nop, ld_r_xxxx, ld_bc_a, inc_r16, inc_r, dec_r, ld_r_xx, rlca,  // 0x00
-    NULL, add_hl_r16, ld_a_bc, dec_r16, inc_r, dec_r, ld_r_xx, NULL,  // 0x08
-    NULL, ld_r_xxxx, ld_de_a, inc_r16, NULL, dec_r, ld_r_xx, NULL,  // 0x10
+    NULL, add_hl_r16, ld_a_bc, dec_r16, inc_r, dec_r, ld_r_xx, rrca,  // 0x08
+    NULL, ld_r_xxxx, ld_de_a, inc_r16, inc_r, dec_r, ld_r_xx, NULL,  // 0x10
     jr_e, add_hl_r16, ld_a_de, dec_r16, inc_r, dec_r, ld_r_xx, rra,  // 0x18
     jr_nz, ld_r_xxxx, ldi_hl_a, inc_r16, inc_r, dec_r, ld_r_xx, daa,  // 0x20
     jr_z, add_hl_r16, ldi_a_hl, dec_r16, inc_r, dec_r, ld_r_xx, cpl,  // 0x28
@@ -2243,13 +2376,13 @@ void (*opcodes[256])() = {
     adc_r, adc_r, adc_r, adc_r, adc_r, adc_r, adc_hl, adc_r,  // 0x88
     sub_r, sub_r, sub_r, sub_r, sub_r, sub_r, sub_hl, sub_r,  // 0x90
     sbc_a_r, sbc_a_r, sbc_a_r, sbc_a_r, sbc_a_r, sbc_a_r, NULL, sbc_a_r,  // 0x98
-    and_r, and_r, and_r, and_r, and_r, and_r, NULL, and_r,  // 0xA0
+    and_r, and_r, and_r, and_r, and_r, and_r, and_hl, and_r,  // 0xA0
     xor_r, xor_r, xor_r, xor_r, xor_r, xor_r, NULL, xor_r,  // 0xA8
     or_r, or_r, or_r, or_r, or_r, or_r, or_hl, or_r,  // 0xB0
     cp_r, cp_r, cp_r, cp_r, cp_r, cp_r, cp_hl, cp_r,  // 0xB8
     ret_nz, pop_r16, jp_nz_a16, jp_nn, call_nz, push_r16, add_d8, NULL,  // 0xC0
     ret_z, ret, jp_z_a16, ex_opcode, call_z, call_a16, NULL, NULL,  // 0xC8
-    ret_nc, pop_r16, NULL, NULL, NULL, push_r16, sub_d8, NULL,  // 0xD0
+    ret_nc, pop_r16, jp_nc_a16, NULL, NULL, push_r16, sub_d8, NULL,  // 0xD0
     ret_c, reti, jp_c_a16, NULL, NULL, NULL, NULL, NULL,  // 0xD8
     ldh_a8_a, pop_r16, ldh_c_a, NULL, NULL, push_r16, and_n, rst,  // 0xE0
     add_sp_s, jp_hl, ld_a16_a, NULL, NULL, NULL, xor_d8, rst,  // 0xE8
@@ -2259,12 +2392,12 @@ void (*opcodes[256])() = {
 
 void (*ex_opcodes[256])() = {
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x00
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,     // 0x08
+    rrc_r, rrc_r, rrc_r, rrc_r, rrc_r, rrc_r, rrc_hl, rrc_r,     // 0x08
     rl_r, rl_r, rl_r, rl_r, rl_r, rl_r, NULL, rl_r,     // 0x10
     rr_r, rr_r, rr_r, rr_r, rr_r, rr_r, NULL, rr_r,     // 0x18
     sla_r, sla_r, sla_r, sla_r, sla_r, sla_r, NULL, sla_r,     // 0x20
     sra_r, sra_r, sra_r, sra_r, sra_r, sra_r, NULL, sra_r,     // 0x28
-    swap_r, swap_r, swap_r, swap_r, swap_r, swap_r, NULL, swap_r,     // 0x30
+    swap_r, swap_r, swap_r, swap_r, swap_r, swap_r, swap_hl, swap_r,     // 0x30
     srl_r, srl_r, srl_r, srl_r, srl_r, srl_r, NULL, srl_r,     // 0x38
 
     bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_hl, bit_n_r,     // 0x40
