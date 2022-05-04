@@ -7,8 +7,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <time.h>
 
-//#define MBC_LOG
+#define MBC_LOG
 
 // Memory Bank Controller Implementation
 
@@ -159,9 +160,38 @@ inline uint8_t mbc3_read(uint16_t addr) {
         if(mbc3.ram_rtc_bank <= 3) {
             // ram
             return ex_ram[(mbc3.ram_rtc_bank * 8192) + (addr - 0xA000)];
-        } else {
+        } else if(mbc3.ram_rtc_bank >= 0x08 && mbc3.ram_rtc_bank <= 0x0C) {
             // rtc
-            die(-1, "unimplemented MBC3 RTC registers\n");
+            time_t rawtime;
+            struct tm *timeinfo;
+
+            time(&rawtime);
+            timeinfo = localtime(&rawtime);
+
+            uint8_t status;
+
+            switch(mbc3.ram_rtc_bank) {
+            case 0x08:
+                if(timeinfo->tm_sec == 60) return 59;
+                else return timeinfo->tm_sec;
+            case 0x09:
+                return timeinfo->tm_min;
+            case 0x0A:
+                return timeinfo->tm_hour;
+            case 0x0B:
+                // lower 8 bits
+                return timeinfo->tm_yday & 0xFF;
+            case 0x0C:
+                status = (timeinfo->tm_yday >> 8) & 1;  // highest bit
+                if(mbc3.halt) status |= 0x40;   // halt flag
+                return status;
+            default:
+                write_log("[mbc] undefined read from RTC/RAM bank 0x%02X address 0x%04X, returning ones\n", mbc3.ram_rtc_bank, addr);
+                return 0xFF;
+            }
+        } else {
+            // undefined
+            write_log("[mbc] undefined read from RTC/RAM bank 0x%02X address 0x%04X, returning ones\n", mbc3.ram_rtc_bank, addr);
             return 0xFF;
         }
     } else {
@@ -222,7 +252,8 @@ inline void mbc3_write(uint16_t addr, uint8_t byte) {
             ex_ram[(mbc3.ram_rtc_bank * 8192) + (addr - 0xA000)] = byte;
         } else {
             // rtc
-            die(-1, "unimplemented MBC3 RTC registers\n");
+            write_log("[mbc] TODO: implement writing to RTC registers (register 0x%02X value 0x%02X)\n", mbc3.ram_rtc_bank, byte);
+            return;     // ignore for now
         }
     } else if(addr >= 0x6000 && addr <= 0x7FFF) {
         mbc3.old_latch_data = mbc3.latch_data;

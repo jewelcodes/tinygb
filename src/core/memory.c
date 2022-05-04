@@ -198,8 +198,8 @@ uint8_t read_io(uint16_t addr) {
     case WAV15:
         return sound_read(addr);
     default:
-        write_log("[memory] unimplemented read from IO port 0x%04X\n", addr);
-        die(-1, NULL);
+        write_log("[memory] unimplemented read from IO port 0x%04X, returning ones...\n", addr);
+        return 0xFF;
     }
 
     return 0xFF;    // unreachable
