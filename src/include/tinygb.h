@@ -69,6 +69,8 @@ extern long rom_size;
 extern void *rom, *ram, *vram;
 extern int is_cgb;
 
+extern char *rom_filename;
+
 extern int cpu_speed;
 
 extern int scaling, frameskip;

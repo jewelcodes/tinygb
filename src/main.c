@@ -14,6 +14,7 @@ int frameskip = 3;  // no skip
 SDL_Window *window;
 SDL_Surface *surface;
 timing_t timing;
+char *rom_filename;
 
 int main(int argc, char **argv) {
     if(argc != 2) {
@@ -25,6 +26,7 @@ int main(int argc, char **argv) {
     //open_config();
 
     // open the rom
+    rom_filename = argv[1];
     FILE *rom_file = fopen(argv[1], "r");
     if(!rom_file) {
         write_log("unable to open %s for reading\n", argv[1]);
