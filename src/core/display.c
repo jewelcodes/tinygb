@@ -360,12 +360,31 @@ void plot_bg_tile(int is_window, int x, int y, uint8_t tile, uint8_t *tile_data)
     }
 }
 
+inline void hflip_sprite(uint32_t *sprite_colors, uint8_t *sprite_data) {
+    // horizontal flip
+    uint32_t temp_color;
+    uint8_t temp_data;
+
+    for(int y = 0; y < 8; y++) {
+        for(int x = 0; x < 4; x++) {
+            temp_color = sprite_colors[(y*8)+7-x];
+            temp_data = sprite_data[(y*8)+7-x];
+
+            sprite_colors[(y*8)+7-x] = sprite_colors[(y*8)+x];
+            sprite_data[(y*8)+7-x] = sprite_data[(y*8)+x];
+
+            sprite_colors[(y*8)+x] = temp_color;
+            sprite_data[(y*8)+x] = temp_data;
+        }
+    }
+}
+
 void plot_small_sprite(int n) {
     // n max 40
-    if(n >= 40) {
+    /*if(n >= 40) {
         write_log("[display] warning: attempt to draw non-existent sprite number %d, ignoring...\n", n);
         return;
-    }
+    }*/
 
     uint8_t *oam_data = oam + (n * 4);
 
@@ -393,8 +412,11 @@ void plot_small_sprite(int n) {
     // 8x8 tiles
     uint8_t *tile_data = vram + 0x0000;     // always starts at 0x8000, unlike bg/window
     uint8_t *ptr = tile_data + (tile * 16);
+    uint32_t sprite_colors[64];    // 8x8
+    uint8_t sprite_data[64];
+    int sprite_data_index = 0;
 
-    for(int i = 0; i < 8; i++) {
+    /*for(int i = 0; i < 8; i++) {
         for(int j = 0; j < 8; j++) {
             data_hi = (ptr[1] >> (7 - j)) & 1;
             data_hi <<= 1;
@@ -424,6 +446,55 @@ void plot_small_sprite(int n) {
         }
 
         ptr += 2;
+    }*/
+
+    sprite_data_index = 0;
+    for(int i = 0; i < 8; i++) {
+        for(int j = 0; j < 8; j++) {
+            data_hi = (ptr[1] >> (7 - j)) & 1;
+            data_hi <<= 1;
+
+            data_lo = (ptr[0] >> (7 - j));
+            data_lo &= 1;
+
+            data = data_hi | data_lo;
+
+            if(flags & 0x10) color_index = (display.obp1 >> (data * 2)) & 3;    // pallete 1
+            else color_index = (display.obp0 >> (data * 2)) & 3;    // pallete 0
+
+            color = bw_pallete[color_index];
+
+            sprite_colors[sprite_data_index] = color;
+            sprite_data[sprite_data_index] = data;
+
+            sprite_data_index++;
+        }
+
+        ptr += 2;
+    }
+
+    // check if we need to flip this sprite
+    if(flags & 0x20) hflip_sprite(sprite_colors, sprite_data);    // horizontal flip
+    //if(flags & 0x40) vflip_sprite(&sprite_colors, &sprite_data);   // vertical flip
+
+    // now plot the actual sprite
+    sprite_data_index = 0;
+    for(int i = 0; i < 8; i++) {
+        for(int j = 0; j < 8; j++) {
+            if(flags & 0x80) {
+                // sprite is behind bg colors 1-3, on top of bg color 0
+
+                // get bg color
+                bg_color = temp_framebuffer[((i + y) * GB_WIDTH) + (j + x)];
+                if((bg_color == bg_color_zero) && sprite_data[sprite_data_index]) temp_framebuffer[((i + y) * GB_WIDTH) + (j + x)] = sprite_colors[sprite_data_index];
+            } else {
+                // sprite is on top of bg, normal scenario
+                // sprite color value zero means transparent, so only plot non-zero values
+                if(sprite_data[sprite_data_index]) temp_framebuffer[((i + y) * GB_WIDTH) + (j + x)] = sprite_colors[sprite_data_index];
+            }
+
+            sprite_data_index++;
+        }
     }
 
     return;
