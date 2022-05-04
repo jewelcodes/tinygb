@@ -1997,6 +1997,35 @@ void and_hl() {
     count_cycles(2);
 }
 
+void sbc_a_a8() {
+    uint8_t r = read_byte(cpu.pc+1);
+
+#ifdef DISASM
+    disasm_log("sbc a, 0x%02X\n", r);
+#endif
+
+    uint8_t a = read_reg8(REG_A);
+
+    a -= r;
+    if(cpu.af & FLAG_CY) a--;
+
+    cpu.af |= FLAG_N;
+
+    if(!a) cpu.af |= FLAG_ZF;
+    else cpu.af &= (~FLAG_ZF);
+
+    if(a > read_reg8(REG_A)) cpu.af |= FLAG_CY;
+    else cpu.af &= (~FLAG_CY);
+
+    if((a & 0x0F) < (read_reg8(REG_A) & 0x0F)) cpu.af |= FLAG_H;
+    else cpu.af &= (~FLAG_H);
+
+    write_reg8(REG_A, a);
+
+    cpu.pc += 2;
+    count_cycles(2);
+}
+
 /* 
     EXTENDED OPCODES
     these are all prefixed with 0xCB first
@@ -2383,7 +2412,7 @@ void (*opcodes[256])() = {
     ret_nz, pop_r16, jp_nz_a16, jp_nn, call_nz, push_r16, add_d8, NULL,  // 0xC0
     ret_z, ret, jp_z_a16, ex_opcode, call_z, call_a16, NULL, NULL,  // 0xC8
     ret_nc, pop_r16, jp_nc_a16, NULL, NULL, push_r16, sub_d8, NULL,  // 0xD0
-    ret_c, reti, jp_c_a16, NULL, NULL, NULL, NULL, NULL,  // 0xD8
+    ret_c, reti, jp_c_a16, NULL, NULL, NULL, sbc_a_a8, NULL,  // 0xD8
     ldh_a8_a, pop_r16, ldh_c_a, NULL, NULL, push_r16, and_n, rst,  // 0xE0
     add_sp_s, jp_hl, ld_a16_a, NULL, NULL, NULL, xor_d8, rst,  // 0xE8
     ldh_a_a8, pop_af, ldh_a_c, di, NULL, push_af, or_d8, rst,  // 0xF0
