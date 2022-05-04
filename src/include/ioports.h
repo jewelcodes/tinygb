@@ -122,7 +122,7 @@ typedef struct {
 
 typedef struct {
     int rom_bank, ram_rtc_bank, ram_rtc_enable, ram_rtc_toggle;
-    int latch_data;
+    int latch_data, old_latch_data;
 
     int h, m, s, d, halt;
 } mbc3_t;

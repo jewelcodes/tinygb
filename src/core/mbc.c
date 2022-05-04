@@ -150,12 +150,14 @@ inline void mbc3_write(uint16_t addr, uint8_t byte) {
             // rtc
             die(-1, "unimplemented MBC3 RTC registers\n");
         }
+    } else if(addr >= 0x6000 && addr <= 0x7FFF) {
+        mbc3.old_latch_data = mbc3.latch_data;
+        mbc3.latch_data = byte;
     } else {
         write_log("[mbc] unimplemented write at address 0x%04X value 0x%02X in MBC%d\n", addr, byte, mbc_type);
         die(-1, NULL);
     }
 }
-
 
 // MBC1 functions here
 inline void mbc1_write(uint16_t addr, uint8_t byte) {
