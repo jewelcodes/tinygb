@@ -67,7 +67,7 @@ typedef struct {
 
 extern long rom_size;
 extern void *rom, *ram, *vram;
-extern int is_cgb;
+extern int is_cgb, is_sgb;
 
 extern char *rom_filename;
 

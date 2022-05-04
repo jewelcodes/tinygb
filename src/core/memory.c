@@ -43,7 +43,7 @@ int mbc_type;
 int rom_bank = 1;
 int cart_ram_bank = 0;
 int work_ram_bank = 1;
-int is_cgb = 0;
+int is_cgb = 0, is_sgb = 0;
 
 void memory_start() {
     // rom was already initialized in main.c
@@ -63,12 +63,24 @@ void memory_start() {
         //is_cgb = 1;
     } else if(*cgb_compatibility == 0xC0) {
         write_log("game only works on CGB\n");
-        //is_cgb = 1;
+        is_cgb = 1;
+        die(-1, "CGB functions are currently unimplemented\n");
     } else if(!*cgb_compatibility) {
         write_log("game doesn't support CGB\n");
         is_cgb = 0;
     } else {
         die(-1, "undefined CGB compatibility value 0x%02X\n", *cgb_compatibility);
+    }
+
+    if(!is_cgb) {
+        uint8_t *sgb_flag = (uint8_t *)rom + 0x146;
+        if(*sgb_flag == 0x03) {
+            write_log("game supports SGB; SGB functions will be enabled\n");
+            is_sgb = 1;
+        } else {
+            write_log("game doesn't support SGB\n");
+            is_sgb = 0;
+        }
     }
 
     cartridge_type = (uint8_t *)rom + 0x147;
