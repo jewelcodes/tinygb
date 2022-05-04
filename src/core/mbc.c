@@ -56,13 +56,13 @@ void mbc_start(void *cart_ram) {
     case 1:
         mbc1.ram_bank = 0;
         mbc1.rom_bank = 1;
-        mbc1.ram_enable = 1;
+        mbc1.ram_enable = 0;
         mbc1.rom_ram_toggle = 0;    // ROM
         break;
     case 3:
         mbc3.ram_rtc_bank = 0;
         mbc3.rom_bank = 1;
-        mbc3.ram_rtc_enable = 1;
+        mbc3.ram_rtc_enable = 0;
         mbc3.ram_rtc_toggle = 0;    // RAM
         break;
     default:
@@ -79,6 +79,20 @@ inline uint8_t mbc3_read(uint16_t addr) {
     if(addr >= 0x4000 && addr <= 0x7FFF) {
         addr -= 0x4000;
         return rom_bytes[(mbc3.rom_bank * 16384) + addr];
+    } else if(addr >= 0xA000 && addr <= 0xBFFF) {
+        if(!mbc3.ram_rtc_enable) {
+            write_log("[mbc] warning: attempt to read from address 0x%04X when external RAM/RTC is disabled, returning ones\n", addr);
+            return 0xFF;
+        }
+
+        if(mbc3.ram_rtc_bank <= 3) {
+            // ram
+            return ex_ram[(mbc3.ram_rtc_bank * 8192) + (addr - 0xA000)];
+        } else {
+            // rtc
+            die(-1, "unimplemented MBC3 RTC registers\n");
+            return 0xFF;
+        }
     } else {
         write_log("[mbc] unimplemented read at address 0x%04X in MBC%d\n", addr, mbc_type);
         die(-1, NULL);
@@ -100,7 +114,7 @@ inline void mbc3_write(uint16_t addr, uint8_t byte) {
         byte &= 0x0F;
 
         #ifdef MBC_LOG
-        if(byte < 3) {
+        if(byte <= 3) {
             write_log("[mbc] selecting RAM bank %d\n", byte);
         } else if(byte >= 0x08 && byte <= 0x0C) {
             write_log("[mbc] selecting RTC register 0x%02X\n", byte);
@@ -110,6 +124,32 @@ inline void mbc3_write(uint16_t addr, uint8_t byte) {
         #endif
 
         mbc3.ram_rtc_bank = byte;
+    } else if(addr >= 0x0000 && addr <= 0x1FFF) {
+        byte &= 0x0F;
+        if(byte == 0x0A) {
+            mbc3.ram_rtc_enable = 1;
+            #ifdef MBC_LOG
+            write_log("[mbc] enabled access to external RAM and RTC\n");
+            #endif
+        } else {
+            mbc3.ram_rtc_enable = 0;
+            #ifdef MBC_LOG
+            write_log("[mbc] disabled access to external RAM and RTC\n");
+            #endif
+        }
+    } else if(addr >= 0xA000 && addr <= 0xBFFF) {
+        if(!mbc3.ram_rtc_enable) {
+            write_log("[mbc] warning: attempt to write to address 0x%04X value 0x%02X when external RAM/RTC is disabled\n", addr, byte);
+            return;
+        }
+
+        if(mbc3.ram_rtc_bank <= 3) {
+            // ram
+            ex_ram[(mbc3.ram_rtc_bank * 8192) + (addr - 0xA000)] = byte;
+        } else {
+            // rtc
+            die(-1, "unimplemented MBC3 RTC registers\n");
+        }
     } else {
         write_log("[mbc] unimplemented write at address 0x%04X value 0x%02X in MBC%d\n", addr, byte, mbc_type);
         die(-1, NULL);
