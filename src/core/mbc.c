@@ -108,26 +108,28 @@ void mbc_start(void *cart_ram) {
     write_log("[mbc] MBC started with %d KiB of external RAM\n", ex_ram_size/1024);
     if(ex_ram_size) {
         write_log("[mbc] battery-backed RAM will read from and dumped to %s\n", ex_ram_filename);
-    }
 
-    // read ram file
-    FILE *file = fopen(ex_ram_filename, "r");
-    if(!file) {
-        write_log("[mbc] unable to open %s for reading, assuming no RAM file\n", ex_ram_filename);
-        return;
-    }
+        // read ram file
+        FILE *file = fopen(ex_ram_filename, "r");
+        if(!file) {
+            write_log("[mbc] unable to open %s for reading, assuming no RAM file\n", ex_ram_filename);
+            return;
+        }
 
-    if(fread(ex_ram, 1, ex_ram_size, file) != ex_ram_size) {
-        write_log("[mbc] unable to read from file %s, assuming no RAM file\n", ex_ram_filename);
-        memset(ex_ram, 0, ex_ram_size);
+        if(fread(ex_ram, 1, ex_ram_size, file) != ex_ram_size) {
+            write_log("[mbc] unable to read from file %s, assuming no RAM file\n", ex_ram_filename);
+            memset(ex_ram, 0, ex_ram_size);
+            fclose(file);
+            return;
+        }
+
         fclose(file);
-        return;
     }
-
-    fclose(file);
 }
 
 void write_ramfile() {
+    if(!ex_ram_size) return;
+    
     FILE *file = fopen(ex_ram_filename, "w");
     if(!file) {
         write_log("[mbc] unable to open %s for writing\n", ex_ram_filename);
