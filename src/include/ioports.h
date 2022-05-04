@@ -126,3 +126,9 @@ typedef struct {
 
     int h, m, s, d, halt;
 } mbc3_t;
+
+typedef struct {
+    uint8_t command_length;     // length in lower 3 bits, 1-7, in number of packets; command in higher 5 bits
+    uint8_t data[111];          // maximum data that can be transferred
+} sgb_command_t;
+

@@ -131,3 +131,6 @@ uint8_t sound_read(uint16_t);
 void joypad_write(uint16_t, uint8_t);
 uint8_t joypad_read(uint16_t);
 void joypad_handle(int, int);
+
+// SGB functions
+void sgb_write(uint8_t);
