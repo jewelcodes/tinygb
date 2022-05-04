@@ -10,7 +10,10 @@
 
 #define SGB_LOG
 
-int sgb_active = 0;
+#define SGB_COMMAND_MLT_REQ     0x11    // used to detect SGB functions
+
+int sgb_active = 0;         // interfering with writes to 0xFF00
+int sgb_interfere = 0;      // interfering with reads from 0xFF00
 int sgb_current_bit = 0;
 sgb_command_t sgb_command;
 
