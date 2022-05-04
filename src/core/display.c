@@ -154,6 +154,16 @@ void display_write(uint16_t addr, uint8_t byte) {
 #endif
         display.dma = byte;
         return;
+    case VBK:
+        if(is_cgb) {
+#ifdef DISPLAY_LOG
+            write_log("[display] write to VBK register value 0x%02X\n", byte);
+#endif
+            display.vbk = byte;
+        } else {
+            write_log("[display] write to VBK register value 0x%02X in non-CGB mode, ignoring...\n", byte);
+        }
+        return;
     default:
         write_log("[memory] unimplemented write to I/O port 0x%04X value 0x%02X\n", addr, byte);
         die(-1, NULL);
