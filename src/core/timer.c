@@ -7,7 +7,7 @@
 #include <string.h>
 #include <math.h>
 
-#define TIMER_LOG
+//#define TIMER_LOG
 
 timer_regs_t timer;
 int timer_cycles = 0;
