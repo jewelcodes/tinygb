@@ -2045,6 +2045,20 @@ void call_nc() {
     }
 }
 
+void ld_a16_sp() {
+    uint16_t a16 = read_word(cpu.pc+1);
+
+#ifdef DISASM
+    disasm_log("ld (0x%04X), sp\n", a16);
+#endif
+
+    write_byte(a16, cpu.sp);
+    write_byte(a16+1, cpu.sp >> 8);
+
+    cpu.pc += 3;
+    count_cycles(5);
+}
+
 /* 
     EXTENDED OPCODES
     these are all prefixed with 0xCB first
@@ -2402,7 +2416,7 @@ void swap_hl() {
 // lookup tables
 void (*opcodes[256])() = {
     nop, ld_r_xxxx, ld_bc_a, inc_r16, inc_r, dec_r, ld_r_xx, rlca,  // 0x00
-    NULL, add_hl_r16, ld_a_bc, dec_r16, inc_r, dec_r, ld_r_xx, rrca,  // 0x08
+    ld_a16_sp, add_hl_r16, ld_a_bc, dec_r16, inc_r, dec_r, ld_r_xx, rrca,  // 0x08
     NULL, ld_r_xxxx, ld_de_a, inc_r16, inc_r, dec_r, ld_r_xx, NULL,  // 0x10
     jr_e, add_hl_r16, ld_a_de, dec_r16, inc_r, dec_r, ld_r_xx, rra,  // 0x18
     jr_nz, ld_r_xxxx, ldi_hl_a, inc_r16, inc_r, dec_r, ld_r_xx, daa,  // 0x20
@@ -2428,14 +2442,14 @@ void (*opcodes[256])() = {
     xor_r, xor_r, xor_r, xor_r, xor_r, xor_r, NULL, xor_r,  // 0xA8
     or_r, or_r, or_r, or_r, or_r, or_r, or_hl, or_r,  // 0xB0
     cp_r, cp_r, cp_r, cp_r, cp_r, cp_r, cp_hl, cp_r,  // 0xB8
-    ret_nz, pop_r16, jp_nz_a16, jp_nn, call_nz, push_r16, add_d8, NULL,  // 0xC0
-    ret_z, ret, jp_z_a16, ex_opcode, call_z, call_a16, NULL, NULL,  // 0xC8
-    ret_nc, pop_r16, jp_nc_a16, NULL, call_nc, push_r16, sub_d8, NULL,  // 0xD0
-    ret_c, reti, jp_c_a16, NULL, NULL, NULL, sbc_a_a8, NULL,  // 0xD8
+    ret_nz, pop_r16, jp_nz_a16, jp_nn, call_nz, push_r16, add_d8, rst,  // 0xC0
+    ret_z, ret, jp_z_a16, ex_opcode, call_z, call_a16, NULL, rst,  // 0xC8
+    ret_nc, pop_r16, jp_nc_a16, NULL, call_nc, push_r16, sub_d8, rst,  // 0xD0
+    ret_c, reti, jp_c_a16, NULL, NULL, NULL, sbc_a_a8, rst,  // 0xD8
     ldh_a8_a, pop_r16, ldh_c_a, NULL, NULL, push_r16, and_n, rst,  // 0xE0
     add_sp_s, jp_hl, ld_a16_a, NULL, NULL, NULL, xor_d8, rst,  // 0xE8
     ldh_a_a8, pop_af, ldh_a_c, di, NULL, push_af, or_d8, rst,  // 0xF0
-    ld_hl_sp_s, ld_sp_hl, ld_a_a16, ei, NULL, NULL, cp_xx, NULL,  // 0xF8
+    ld_hl_sp_s, ld_sp_hl, ld_a_a16, ei, NULL, NULL, cp_xx, rst,  // 0xF8
 };
 
 void (*ex_opcodes[256])() = {
