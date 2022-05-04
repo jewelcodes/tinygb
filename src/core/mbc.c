@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <time.h>
 
-#define MBC_LOG
+//#define MBC_LOG
 
 // Memory Bank Controller Implementation
 
