@@ -501,6 +501,27 @@ void plot_small_sprite(int n) {
 }
 
 void render_line() {
+    uint32_t *src = temp_framebuffer + (display.ly * GB_WIDTH);
+    uint32_t *dst = framebuffer + (display.ly * GB_WIDTH);
+
+    if(is_sgb && sgb_screen_mask) {
+        uint32_t sgb_blank_color;
+        switch(sgb_screen_mask) {
+        case 1:         // freeze at current frame
+            return;
+        case 2:         // freeze black
+            sgb_blank_color = 0x000000;
+            break;
+        case 3:         // freeze color zero
+        default:
+            sgb_blank_color = bw_pallete[0];
+        }
+
+        for(int i = 0; i < GB_WIDTH; i++) {
+            dst[i] = sgb_blank_color;
+        }
+    }
+
     // renders a single horizontal line
     copy_oam(oam);
 
@@ -605,9 +626,6 @@ void render_line() {
     }
 
     // done, copy the singular line we were at
-    uint32_t *src = temp_framebuffer + (display.ly * GB_WIDTH);
-    uint32_t *dst = framebuffer + (display.ly * GB_WIDTH);
-
     for(int i = 0; i < GB_WIDTH; i++) {
         dst[i] = src[i];
     }
