@@ -5,37 +5,11 @@
 #include <tinygb.h>
 #include <ioports.h>
 #include <string.h>
+#include <sgb.h>
 
 // Super Gameboy implementation
 
 #define SGB_LOG
-
-// SGB Commands
-#define SGB_PAL01       0x00        // these set palettes
-#define SGB_PAL23       0x01
-#define SGB_PAL03       0x02
-#define SGB_PAL12       0x03
-#define SGB_ATTR_BLK    0x04
-#define SGB_ATTR_LIN    0x05
-#define SGB_ATTR_DIV    0x06
-#define SGB_ATTR_CHR    0x07
-#define SGB_SOUND       0x08
-#define SGB_SOU_TRN     0x09
-#define SGB_PAL_SET     0x0A
-#define SGB_PAL_TRN     0x0B
-#define SGB_ATRC_EN     0x0C
-#define SGB_TEST_EN     0x0D
-#define SGB_ICON_EN     0x0E
-#define SGB_DATA_SND    0x0F        // transfer SNES WRAM
-#define SGB_DATA_TRN    0x10
-#define SGB_MLT_REQ     0x11        // used to detect SGB functions
-#define SGB_JUMP        0x12
-#define SGB_CHR_TRN     0x13
-#define SGB_PCT_TRN     0x14
-#define SGB_ATTR_TRN    0x15
-#define SGB_ATTR_SET    0x16
-#define SGB_MASK_EN     0x17
-#define SGB_OBJ_TRN     0x18
 
 int sgb_transferring = 0;   // interfering with writes to 0xFF00
 int sgb_interfere = 0;      // interfering with reads from 0xFF00
@@ -149,8 +123,13 @@ void handle_sgb_command() {
         write_log("[sgb] handling command 0x%02X: ATTR_BLK\n", command);
 #endif
 
-        write_log("[sgb] ATTR_BLK: setting attributes with %d datasets\n", sgb_command.data[0]);
-        die(-1, "");
+        write_log("[sgb] ATTR_BLK: setting color attributes with %d datasets\n", sgb_command.data[0]);
+
+        uint8_t *ptr = &sgb_command.data[1];
+        for(int i = 0; i < sgb_command.data[0]; i++) {
+            write_log("[sgb] ATTR_BLK entry %d: flags 0x%02X from X/Y %d/%d to %d/%d\n", i, ptr[0], ptr[2], ptr[3], ptr[4], ptr[5]);
+            ptr += 6;
+        }
         break;
     default:
         write_log("[sgb] unhandled command 0x%02X, ignoring...\n", command);
