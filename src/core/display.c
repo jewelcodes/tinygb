@@ -628,6 +628,10 @@ void render_line() {
     }
 
     // done, copy the singular line we were at
+    if(using_sgb_palette) {
+        return sgb_recolor(dst, src, display.ly, bw_pallete);
+    }
+
     for(int i = 0; i < GB_WIDTH; i++) {
         dst[i] = src[i];
     }

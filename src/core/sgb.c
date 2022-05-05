@@ -229,3 +229,10 @@ void sgb_write(uint8_t byte) {
 uint8_t sgb_read() {
     return sgb_joypad_return;
 }
+
+void sgb_recolor(uint32_t *dst, uint32_t *src, int ly, uint32_t *bw_palette) {
+    // TODO !!!!
+    for(int i = 0; i < GB_WIDTH; i++) {
+        dst[i] = src[i];
+    }
+}
