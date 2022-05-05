@@ -128,10 +128,12 @@ void sound_write(uint16_t, uint8_t);
 uint8_t sound_read(uint16_t);
 
 // joypad
+extern uint8_t pressed_keys;
 void joypad_write(uint16_t, uint8_t);
 uint8_t joypad_read(uint16_t);
 void joypad_handle(int, int);
 
 // SGB functions
-int sgb_active, sgb_interfere;
+int sgb_transferring, sgb_interfere;
 void sgb_write(uint8_t);
+uint8_t sgb_read();

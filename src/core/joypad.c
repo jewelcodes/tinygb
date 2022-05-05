@@ -19,6 +19,7 @@ int selection = 0;  // 0 = buttons, 1 = directions
 #define BUTTON_DOWN     0x80
 
 uint8_t joypad_read(uint16_t addr) {
+    if(is_sgb && sgb_interfere) return sgb_read();
     uint8_t val;
 
     if(selection) {
@@ -35,7 +36,9 @@ uint8_t joypad_read(uint16_t addr) {
 }
 
 void joypad_write(uint16_t addr, uint8_t byte) {
-    if(is_sgb && sgb_active) return sgb_write(byte);
+    if(is_sgb && sgb_transferring) return sgb_write(byte);
+
+    if(is_sgb && sgb_interfere) return sgb_write(byte);
 
     if(is_sgb) {
         if(!(byte & 0x20) && !(byte & 0x10)) {
