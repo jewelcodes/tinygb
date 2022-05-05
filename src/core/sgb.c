@@ -76,6 +76,7 @@ void create_sgb_palette(int sgb_palette, int system_palette) {
 void handle_sgb_command() {
     uint8_t command;
     command = sgb_command.command_length >> 3;
+    uint16_t *palette_numbers;
 
     switch(command) {
     case SGB_MLT_REQ:
@@ -83,11 +84,15 @@ void handle_sgb_command() {
         write_log("[sgb] handling command 0x%02X: MLT_REQ\n", command);
 #endif
         if(sgb_command.data[0] & 0x01) {
+#ifdef SGB_LOG
             write_log("[sgb] MLT_REQ: enabled multiplayer joypads\n");
+#endif
             sgb_current_joypad = 0x0C;
             sgb_interfere = 1;
         } else {
+#ifdef SGB_LOG
             write_log("[sgb] MLT_REQ: disabled multiplayer joypads\n");
+#endif
             sgb_interfere = 0;
         }
         break;
@@ -99,6 +104,7 @@ void handle_sgb_command() {
         sgb_command.data[0] %= 3;
         sgb_screen_mask = sgb_command.data[0];
 
+#ifdef SGB_LOG
         if(sgb_command.data[0] == 0) {
             write_log("[sgb] MASK_EN: cancelling screen mask\n");
         } else if(sgb_command.data[0] == 1) {
@@ -108,13 +114,13 @@ void handle_sgb_command() {
         } else {
             write_log("[sgb] MASK_EN: freezing screen at color zero\n");
         }
+#endif
         break;
     case SGB_PAL_TRN:
 #ifdef SGB_LOG
         write_log("[sgb] handling command 0x%02X: PAL_TRN\n", command);
-#endif
-
         write_log("[sgb] PAL_TRN: transferring 4 KiB of palette data from VRAM 0x8000-0x8FFF to SNES\n");
+#endif
 
         for(int i = 0; i < 4096; i++) {
             sgb_palette_data[i] = read_byte(0x8800+i);
@@ -126,10 +132,12 @@ void handle_sgb_command() {
         write_log("[sgb] handling command 0x%02X: PAL_SET\n", command);
 #endif
 
-        uint16_t *palette_numbers = (uint16_t *)(&sgb_command.data[0]);
+        palette_numbers = (uint16_t *)(&sgb_command.data[0]);
 
         for(int i = 0; i < 4; i++) {
+#ifdef SGB_LOG
             write_log("[sgb] PAL_SET: palette %d -> system palette %d\n", i, palette_numbers[i]);
+#endif
 
             create_sgb_palette(i, palette_numbers[i]);
         }
@@ -138,9 +146,8 @@ void handle_sgb_command() {
     case SGB_ATTR_BLK:
 #ifdef SGB_LOG
         write_log("[sgb] handling command 0x%02X: ATTR_BLK\n", command);
-#endif
-
         write_log("[sgb] ATTR_BLK: setting color attributes with %d datasets\n", sgb_command.data[0]);
+#endif
         sgb_attr_block_count = sgb_command.data[0];
 
         memset(&sgb_attr_blocks, 0, sizeof(sgb_attr_block_t)*18);
@@ -161,6 +168,7 @@ void handle_sgb_command() {
             sgb_attr_blocks[i].x2 = (ptr[4] + 1) * 8;
             sgb_attr_blocks[i].y2 = (ptr[5] + 1) * 8;
 
+#ifdef SGB_LOG
             write_log("[sgb] ATTR BLK entry %d: flags 0x%02X from X,Y %d,%d to %d,%d\n", i, ptr[0], sgb_attr_blocks[i].x1, sgb_attr_blocks[i].y1, sgb_attr_blocks[i].x2, sgb_attr_blocks[i].y2);
             if(ptr[0]) {
                 write_log("[sgb] ");
@@ -178,6 +186,7 @@ void handle_sgb_command() {
 
                 write_log("\n");
             }
+#endif
 
             ptr += 6;
         }
@@ -330,7 +339,6 @@ inline int get_palette_from_pos(int x, int y) {
 
 // recolors one line
 void sgb_recolor(uint32_t *dst, uint32_t *src, int ly, uint32_t *bw_palette) {
-    uint32_t og_color, new_color;
     int color_index, sgb_palette;
     for(int i = 0; i < GB_WIDTH; i++) {
         color_index = get_index_from_palette(src[i], bw_palette);
