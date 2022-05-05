@@ -42,3 +42,8 @@ typedef struct {
     uint32_t colors[4];
 } sgb_palette_t;
 
+typedef struct {
+    int inside, outside, surrounding;   // what the fuck does surrounding even mean bruh
+    int palette_inside, palette_outside, palette_surrounding;
+    int x1, y1, x2, y2;
+} sgb_attr_block_t;
