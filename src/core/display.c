@@ -520,6 +520,8 @@ void render_line() {
         for(int i = 0; i < GB_WIDTH; i++) {
             dst[i] = sgb_blank_color;
         }
+
+        return;
     }
 
     // renders a single horizontal line
