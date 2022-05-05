@@ -47,6 +47,16 @@ int sgb_screen_mask = 0;
 uint8_t sgb_current_joypad = 0x0F;      // 0x0C-0x0F
 uint8_t sgb_joypad_return;
 
+uint8_t *sgb_palette_data;
+
+void sgb_start() {
+    sgb_palette_data = calloc(1, 4096);
+    if(!sgb_palette_data) {
+        write_log("[sgb] unable to allocate memory\n");
+        die(-1, "");
+    }
+}
+
 void handle_sgb_command() {
     uint8_t command;
     command = sgb_command.command_length >> 3;

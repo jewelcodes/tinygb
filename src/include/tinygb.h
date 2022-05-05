@@ -135,5 +135,6 @@ void joypad_handle(int, int);
 
 // SGB functions
 int sgb_transferring, sgb_interfere, sgb_screen_mask;
+void sgb_start();
 void sgb_write(uint8_t);
 uint8_t sgb_read();

@@ -77,6 +77,7 @@ void memory_start() {
         if(*sgb_flag == 0x03) {
             write_log("game supports SGB; SGB functions will be enabled\n");
             is_sgb = 1;
+            sgb_start();
         } else {
             write_log("game doesn't support SGB\n");
             is_sgb = 0;
