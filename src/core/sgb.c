@@ -59,6 +59,17 @@ void create_sgb_palette(int sgb_palette, int system_palette) {
     sgb_palettes[sgb_palette].colors[1] = truecolor(data[1]);
     sgb_palettes[sgb_palette].colors[2] = truecolor(data[2]);
     sgb_palettes[sgb_palette].colors[3] = truecolor(data[3]);
+
+#ifdef SGB_LOG
+    for(int i = 0; i < 4; i++) {
+        int r, g, b; 
+        r = (sgb_palettes[sgb_palette].colors[i] >> 16) & 0xFF;
+        g = (sgb_palettes[sgb_palette].colors[i] >> 8) & 0xFF;
+        b = sgb_palettes[sgb_palette].colors[i] & 0xFF;
+
+        write_log("[sgb] SGB palette %d color 0 = \e[38;2;%d;%d;%dm#%06X\e[0m\n", sgb_palette, r, g, b, sgb_palettes[sgb_palette].colors[i]);
+    }
+#endif
 }
 
 void handle_sgb_command() {
@@ -105,7 +116,8 @@ void handle_sgb_command() {
         write_log("[sgb] PAL_TRN: transferring 4 KiB of palette data from VRAM 0x8000-0x8FFF to SNES\n");
 
         for(int i = 0; i < 4096; i++) {
-            sgb_palette_data[i] = read_byte(0x8000+i);
+            sgb_palette_data[i] = read_byte(0x8800+i);
+            //if(sgb_palette_data[i]) printf("%d: 0x%02X\n", i, sgb_palette_data[i]);
         }
         break;
     case SGB_PAL_SET:
@@ -113,7 +125,7 @@ void handle_sgb_command() {
         write_log("[sgb] handling command 0x%02X: PAL_SET\n", command);
 #endif
 
-        uint16_t *palette_numbers = (uint16_t *)((void *)&sgb_command+1);
+        uint16_t *palette_numbers = (uint16_t *)(&sgb_command.data[0]);
 
         for(int i = 0; i < 4; i++) {
             write_log("[sgb] PAL_SET: palette %d -> system palette %d\n", i, palette_numbers[i]);
@@ -134,7 +146,7 @@ void handle_sgb_command() {
 
         uint8_t *ptr = &sgb_command.data[1];
         for(int i = 0; i < sgb_command.data[0]; i++) {
-            write_log("[sgb] ATTR_BLK entry %d: flags 0x%02X from X/Y %d/%d to %d/%d\n", i, ptr[0], ptr[2], ptr[3], ptr[4], ptr[5]);
+            //write_log("[sgb] ATTR_BLK entry %d: flags 0x%02X from X/Y %d/%d to %d/%d\n", i, ptr[0], ptr[2], ptr[3], ptr[4], ptr[5]);
             if(ptr[0] & 0x01) sgb_attr_blocks[i].inside = 1;
             if(ptr[0] & 0x02) sgb_attr_blocks[i].surrounding = 1;
             if(ptr[0] & 0x04) sgb_attr_blocks[i].outside = 1;
@@ -147,6 +159,24 @@ void handle_sgb_command() {
             sgb_attr_blocks[i].y1 = ptr[3] * 8;
             sgb_attr_blocks[i].x2 = (ptr[4] + 1) * 8;
             sgb_attr_blocks[i].y2 = (ptr[5] + 1) * 8;
+
+            write_log("[sgb] ATTR BLK entry %d: flags 0x%02X from X,Y %d,%d to %d,%d\n", i, ptr[0], sgb_attr_blocks[i].x1, sgb_attr_blocks[i].y1, sgb_attr_blocks[i].x2, sgb_attr_blocks[i].y2);
+            if(ptr[0]) {
+                write_log("[sgb] ");
+                if(sgb_attr_blocks[i].inside) {
+                    write_log("inside = %d ", sgb_attr_blocks[i].palette_inside);
+                }
+
+                if(sgb_attr_blocks[i].outside) {
+                    write_log("outside = %d ", sgb_attr_blocks[i].palette_outside);
+                }
+
+                if(sgb_attr_blocks[i].surrounding) {
+                    write_log("surrounding = %d ", sgb_attr_blocks[i].palette_surrounding);
+                }
+
+                write_log("\n");
+            }
 
             ptr += 6;
         }
@@ -226,13 +256,54 @@ void sgb_write(uint8_t byte) {
     }
 }
 
-uint8_t sgb_read() {
+inline uint8_t sgb_read() {
     return sgb_joypad_return;
 }
 
+inline int get_index_from_palette(uint32_t color, uint32_t *palette) {
+    for(int i = 0; i < 4; i++) {
+        if(palette[i] == color) return i;
+    }
+
+    write_log("[sgb] somehow landed on a color that isn't in an existing palette, quitting due to data corruption\n");
+    die(-1, "");
+    return -1;  // unreachale
+}
+
+inline int get_palette_from_pos(int x, int y) {
+    for(int i = 0; i < sgb_attr_block_count; i++) {
+        // check if inside or outside, in that order
+        if(sgb_attr_blocks[i].inside) {
+            if(x >= sgb_attr_blocks[i].x1 && x <= sgb_attr_blocks[i].x2 && y >= sgb_attr_blocks[i].y1 && y <= sgb_attr_blocks[i].y2) {
+                return sgb_attr_blocks[i].palette_inside;
+            }
+        }
+
+        if(sgb_attr_blocks[i].outside) {
+            if(!(x >= sgb_attr_blocks[i].x1 && x <= sgb_attr_blocks[i].x2 && y >= sgb_attr_blocks[i].y1 && y <= sgb_attr_blocks[i].y2)) {
+                return sgb_attr_blocks[i].palette_outside;
+            }
+        }
+
+        /*if(sgb_attr_blocks[i].surrounding) {
+            if((x >= sgb_attr_blocks[i].x1 && x <= sgb_attr_blocks[i].x2 && y >= sgb_attr_blocks[i].y1 && y <= sgb_attr_blocks[i].y2)) {
+                return sgb_attr_blocks[i].palette_surrounding;
+            }
+        }*/
+    }
+
+    // somehow couldn't return anything, so just return zero
+    return 0;
+}
+
+// recolors one line
 void sgb_recolor(uint32_t *dst, uint32_t *src, int ly, uint32_t *bw_palette) {
-    // TODO !!!!
+    uint32_t og_color, new_color;
+    int color_index, sgb_palette;
     for(int i = 0; i < GB_WIDTH; i++) {
-        dst[i] = src[i];
+        color_index = get_index_from_palette(src[i], bw_palette);
+        sgb_palette = get_palette_from_pos(i, ly);
+
+        dst[i] = sgb_palettes[sgb_palette].colors[color_index];
     }
 }
