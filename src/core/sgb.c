@@ -19,6 +19,8 @@ sgb_command_t sgb_command;
 sgb_palette_t sgb_palettes[4];
 sgb_attr_block_t sgb_attr_blocks[18];   // maximum
 
+int sgb_attr_block_count = 0;
+
 int sgb_screen_mask = 0;
 
 uint8_t sgb_current_joypad = 0x0F;      // 0x0C-0x0F
@@ -126,6 +128,7 @@ void handle_sgb_command() {
 #endif
 
         write_log("[sgb] ATTR_BLK: setting color attributes with %d datasets\n", sgb_command.data[0]);
+        sgb_attr_block_count = sgb_command.data[0];
 
         memset(&sgb_attr_blocks, 0, sizeof(sgb_attr_block_t)*18);
 
