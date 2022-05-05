@@ -14,8 +14,10 @@
 int sgb_transferring = 0;   // interfering with writes to 0xFF00
 int sgb_interfere = 0;      // interfering with reads from 0xFF00
 int sgb_current_bit = 0;
+int using_sgb_palette = 0;
 sgb_command_t sgb_command;
 sgb_palette_t sgb_palettes[4];
+sgb_attr_block_t sgb_attr_blocks[18];   // maximum
 
 int sgb_screen_mask = 0;
 
@@ -125,11 +127,28 @@ void handle_sgb_command() {
 
         write_log("[sgb] ATTR_BLK: setting color attributes with %d datasets\n", sgb_command.data[0]);
 
+        memset(&sgb_attr_blocks, 0, sizeof(sgb_attr_block_t)*18);
+
         uint8_t *ptr = &sgb_command.data[1];
         for(int i = 0; i < sgb_command.data[0]; i++) {
             write_log("[sgb] ATTR_BLK entry %d: flags 0x%02X from X/Y %d/%d to %d/%d\n", i, ptr[0], ptr[2], ptr[3], ptr[4], ptr[5]);
+            if(ptr[0] & 0x01) sgb_attr_blocks[i].inside = 1;
+            if(ptr[0] & 0x02) sgb_attr_blocks[i].surrounding = 1;
+            if(ptr[0] & 0x04) sgb_attr_blocks[i].outside = 1;
+
+            sgb_attr_blocks[i].palette_inside = ptr[1] & 3;
+            sgb_attr_blocks[i].palette_surrounding = (ptr[1] >> 2) & 3;
+            sgb_attr_blocks[i].palette_outside = (ptr[1] >> 4) & 3;
+
+            sgb_attr_blocks[i].x1 = ptr[2] * 8;
+            sgb_attr_blocks[i].y1 = ptr[3] * 8;
+            sgb_attr_blocks[i].x2 = (ptr[4] + 1) * 8;
+            sgb_attr_blocks[i].y2 = (ptr[5] + 1) * 8;
+
             ptr += 6;
         }
+
+        using_sgb_palette = 1;
         break;
     default:
         write_log("[sgb] unhandled command 0x%02X, ignoring...\n", command);
