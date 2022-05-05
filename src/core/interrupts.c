@@ -4,7 +4,7 @@
 
 #include <tinygb.h>
 
-#define INTERRUPTS_LOG
+//#define INTERRUPTS_LOG
 
 uint8_t io_if = 0, io_ie = 0;
 
