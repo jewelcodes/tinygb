@@ -42,6 +42,8 @@ int sgb_interfere = 0;      // interfering with reads from 0xFF00
 int sgb_current_bit = 0;
 sgb_command_t sgb_command;
 
+int sgb_screen_mask = 0;
+
 uint8_t sgb_current_joypad = 0x0F;      // 0x0C-0x0F
 uint8_t sgb_joypad_return;
 
@@ -55,11 +57,11 @@ void handle_sgb_command() {
         write_log("[sgb] handling command 0x%02X: MLT_REQ\n", command);
 #endif
         if(sgb_command.data[0] & 0x01) {
-            write_log("[sgb] enabled multiplayer joypads\n");
+            write_log("[sgb] MLT_REQ: enabled multiplayer joypads\n");
             sgb_current_joypad = 0x0C;
             sgb_interfere = 1;
         } else {
-            write_log("[sgb] disabled multiplayer joypads\n");
+            write_log("[sgb] MLT_REQ: disabled multiplayer joypads\n");
             sgb_interfere = 0;
         }
         break;
@@ -67,6 +69,19 @@ void handle_sgb_command() {
 #ifdef SGB_LOG
         write_log("[sgb] handling command 0x%02X: MASK_EN\n", command);
 #endif
+
+        sgb_command.data[0] %= 3;
+        sgb_screen_mask = sgb_command.data[0];
+
+        if(sgb_command.data[0] == 0) {
+            write_log("[sgb] MASK_EN: cancelling screen mask\n");
+        } else if(sgb_command.data[1] == 1) {
+            write_log("[sgb] MASK_EN: freezing current screen\n");
+        } else if(sgb_command.data[2] == 2) {
+            write_log("[sgb] MASK_EN: freezing screen at black\n");
+        } else {
+            write_log("[sgb] MASK_EN: freezing screen at color zero\n");
+        }
         break;
     default:
         write_log("[sgb] unhandled command 0x%02X, ignoring...\n", command);
