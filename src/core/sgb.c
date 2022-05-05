@@ -87,7 +87,7 @@ void handle_sgb_command() {
 #ifdef SGB_LOG
             write_log("[sgb] MLT_REQ: enabled multiplayer joypads\n");
 #endif
-            sgb_current_joypad = 0x0C;
+            sgb_current_joypad = 0x0F;
             sgb_interfere = 1;
         } else {
 #ifdef SGB_LOG
