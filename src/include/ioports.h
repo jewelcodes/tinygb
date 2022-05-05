@@ -132,3 +132,6 @@ typedef struct {
     uint8_t data[111];          // maximum data that can be transferred
 } sgb_command_t;
 
+typedef struct {
+    uint32_t colors[4];
+} sgb_palette_t;

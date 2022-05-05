@@ -41,6 +41,7 @@ int sgb_transferring = 0;   // interfering with writes to 0xFF00
 int sgb_interfere = 0;      // interfering with reads from 0xFF00
 int sgb_current_bit = 0;
 sgb_command_t sgb_command;
+sgb_palette_t sgb_palettes[4];
 
 int sgb_screen_mask = 0;
 
@@ -55,6 +56,31 @@ void sgb_start() {
         write_log("[sgb] unable to allocate memory\n");
         die(-1, "");
     }
+}
+
+inline uint32_t truecolor(uint16_t color16) {
+    uint32_t color32;
+    int r, g, b; 
+
+    r = color16 & 31;
+    g = (color16 >> 5) & 31;
+    b = (color16 >> 10) & 31;
+
+    r <<= 3;    // x8
+    g <<= 3;
+    b <<= 3;
+
+    color32 = (r << 16) | (g << 8) | b;
+    return color32;
+}
+
+void create_sgb_palette(int sgb_palette, int system_palette) {
+    uint16_t *data = (uint16_t *)(sgb_palette_data + (system_palette * 8));
+
+    sgb_palettes[sgb_palette].colors[0] = truecolor(data[0]);
+    sgb_palettes[sgb_palette].colors[1] = truecolor(data[1]);
+    sgb_palettes[sgb_palette].colors[2] = truecolor(data[2]);
+    sgb_palettes[sgb_palette].colors[3] = truecolor(data[3]);
 }
 
 void handle_sgb_command() {
@@ -85,13 +111,46 @@ void handle_sgb_command() {
 
         if(sgb_command.data[0] == 0) {
             write_log("[sgb] MASK_EN: cancelling screen mask\n");
-        } else if(sgb_command.data[1] == 1) {
+        } else if(sgb_command.data[0] == 1) {
             write_log("[sgb] MASK_EN: freezing current screen\n");
-        } else if(sgb_command.data[2] == 2) {
+        } else if(sgb_command.data[0] == 2) {
             write_log("[sgb] MASK_EN: freezing screen at black\n");
         } else {
             write_log("[sgb] MASK_EN: freezing screen at color zero\n");
         }
+        break;
+    case SGB_PAL_TRN:
+#ifdef SGB_LOG
+        write_log("[sgb] handling command 0x%02X: PAL_TRN\n", command);
+#endif
+
+        write_log("[sgb] PAL_TRN: transferring 4 KiB of palette data from VRAM 0x8000-0x8FFF to SNES\n");
+
+        for(int i = 0; i < 4096; i++) {
+            sgb_palette_data[i] = read_byte(0x8000+i);
+        }
+        break;
+    case SGB_PAL_SET:
+#ifdef SGB_LOG
+        write_log("[sgb] handling command 0x%02X: PAL_SET\n", command);
+#endif
+
+        uint16_t *palette_numbers = (uint16_t *)((void *)&sgb_command+1);
+
+        for(int i = 0; i < 4; i++) {
+            write_log("[sgb] PAL_SET: palette %d -> system palette %d\n", i, palette_numbers[i]);
+
+            create_sgb_palette(i, palette_numbers[i]);
+        }
+        break;
+
+    case SGB_ATTR_BLK:
+#ifdef SGB_LOG
+        write_log("[sgb] handling command 0x%02X: ATTR_BLK\n", command);
+#endif
+
+        write_log("[sgb] ATTR_BLK: setting attributes with %d datasets\n", sgb_command.data[0]);
+        die(-1, "");
         break;
     default:
         write_log("[sgb] unhandled command 0x%02X, ignoring...\n", command);
