@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-    if(fread(rom, 1, rom_size, rom_file) != rom_size) {
+    if(!fread(rom, 1, rom_size, rom_file)) {
         write_log("an error occured while reading from rom file\n");
         fclose(rom_file);
         free(rom);

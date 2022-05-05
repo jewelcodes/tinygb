@@ -13,7 +13,7 @@
 
 // Memory Bank Controller Implementation
 
-/* 
+/*
 
  No MBC:
  - 32 KiB ROM is mapped directly at 0x0000-0x7FFF
@@ -116,7 +116,7 @@ void mbc_start(void *cart_ram) {
             return;
         }
 
-        if(fread(ex_ram, 1, ex_ram_size, file) != ex_ram_size) {
+        if(!fread(ex_ram, 1, ex_ram_size, file)) {
             write_log("[mbc] unable to read from file %s, assuming no RAM file\n", ex_ram_filename);
             memset(ex_ram, 0, ex_ram_size);
             fclose(file);
@@ -129,8 +129,9 @@ void mbc_start(void *cart_ram) {
 
 void write_ramfile() {
     if(!ex_ram_size) return;
-    
-    FILE *file = fopen(ex_ram_filename, "w");
+
+    remove(ex_ram_filename);
+    FILE *file = fopen(ex_ram_filename, "wb");
     if(!file) {
         write_log("[mbc] unable to open %s for writing\n", ex_ram_filename);
         return;
