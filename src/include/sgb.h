@@ -34,6 +34,7 @@
 #define SGB_OBJ_TRN     0x18
 
 typedef struct {
+    int stopped;
     uint8_t command_length;     // length in lower 3 bits, 1-7, in number of packets; command in higher 5 bits
     uint8_t data[111];          // maximum data that can be transferred
 } sgb_command_t;

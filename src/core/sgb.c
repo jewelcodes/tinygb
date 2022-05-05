@@ -14,6 +14,7 @@
 int sgb_transferring = 0;   // interfering with writes to 0xFF00
 int sgb_interfere = 0;      // interfering with reads from 0xFF00
 int sgb_current_bit = 0;
+int sgb_command_size;
 int using_sgb_palette = 0;
 sgb_command_t sgb_command;
 sgb_palette_t sgb_palettes[4];
@@ -67,7 +68,7 @@ void create_sgb_palette(int sgb_palette, int system_palette) {
         g = (sgb_palettes[sgb_palette].colors[i] >> 8) & 0xFF;
         b = sgb_palettes[sgb_palette].colors[i] & 0xFF;
 
-        write_log("[sgb] SGB palette %d color 0 = \e[38;2;%d;%d;%dm#%06X\e[0m\n", sgb_palette, r, g, b, sgb_palettes[sgb_palette].colors[i]);
+        write_log("[sgb] SGB palette %d color %d = \e[38;2;%d;%d;%dm#%06X\e[0m\n", sgb_palette, i, r, g, b, sgb_palettes[sgb_palette].colors[i]);
     }
 #endif
 }
@@ -196,8 +197,16 @@ void sgb_write(uint8_t byte) {
     if(!sgb_transferring && !p14 && !p15) {
         // reset signal
         sgb_transferring = 1;
-        sgb_current_bit = 0;
-        memset(&sgb_command, 0, sizeof(sgb_command_t));
+
+        if(sgb_current_bit >= sgb_command_size) {
+            sgb_current_bit = 0;
+            memset(&sgb_command, 0, sizeof(sgb_command_t));
+        } else {
+            // continuing a transfer
+            sgb_command.stopped = 1;
+            sgb_current_bit--;
+            //write_log("continuing a transfer from bit %d\n", sgb_current_bit);
+        }
     }
 
     if(!sgb_transferring && sgb_interfere) {
@@ -230,6 +239,34 @@ void sgb_write(uint8_t byte) {
     }
 
     // here we know they're different, so keep going
+    if(!p14) {
+        // a zero bit is being transferred
+        // check if the PREVIOUS bit was a stop bit
+        if(sgb_command.stopped) {
+            sgb_command.stopped = 0;
+            goto count;
+        } else {
+            // previous bit was NOT a stop bit, check if the current one is
+            if((sgb_current_bit >= 128) && !(sgb_current_bit % 128)) {
+                // this is a stop bit
+                sgb_command.stopped = 1;
+                sgb_transferring = 0;
+
+                //write_log("[sgb] stop bit at %d\n", sgb_current_bit);
+
+                sgb_command_size = (sgb_command.command_length & 7) * 16 * 8;   // in bits
+                if(sgb_current_bit >= sgb_command_size) {
+                    handle_sgb_command();
+                    return;
+                }
+            }
+
+            // nope, still not a stop bit
+            sgb_command.stopped = 0;
+            goto count;
+        }
+    }
+
     if(!p15) {
         // a one bit is being transferred
         int byte_number = sgb_current_bit / 8;
@@ -244,16 +281,9 @@ void sgb_write(uint8_t byte) {
         }
     }
 
+count:
+    //write_log("write bit %d\n", sgb_current_bit);
     sgb_current_bit++;
-
-    if(sgb_current_bit >= 128) {
-        int final_length = (sgb_command.command_length & 7) * 16 * 8;   // in bits
-        if(sgb_current_bit >= final_length) {
-            sgb_transferring = 0;
-            handle_sgb_command();
-            return;
-        }
-    }
 }
 
 inline uint8_t sgb_read() {
@@ -271,7 +301,9 @@ inline int get_index_from_palette(uint32_t color, uint32_t *palette) {
 }
 
 inline int get_palette_from_pos(int x, int y) {
-    for(int i = 0; i < sgb_attr_block_count; i++) {
+    // THESE HAVE TO BE READ IN REVERSE ORDER
+    // aka priority is for the one stated later
+    for(int i = sgb_attr_block_count - 1; i >= 0; i--) {
         // check if inside or outside, in that order
         if(sgb_attr_blocks[i].inside) {
             if(x >= sgb_attr_blocks[i].x1 && x <= sgb_attr_blocks[i].x2 && y >= sgb_attr_blocks[i].y1 && y <= sgb_attr_blocks[i].y2) {
@@ -285,11 +317,11 @@ inline int get_palette_from_pos(int x, int y) {
             }
         }
 
-        /*if(sgb_attr_blocks[i].surrounding) {
+        if(sgb_attr_blocks[i].surrounding) {
             if((x >= sgb_attr_blocks[i].x1 && x <= sgb_attr_blocks[i].x2 && y >= sgb_attr_blocks[i].y1 && y <= sgb_attr_blocks[i].y2)) {
                 return sgb_attr_blocks[i].palette_surrounding;
             }
-        }*/
+        }
     }
 
     // somehow couldn't return anything, so just return zero
