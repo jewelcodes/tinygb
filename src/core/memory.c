@@ -139,8 +139,6 @@ inline uint8_t read_hram(uint16_t addr) {
 
 uint8_t read_io(uint16_t addr) {
     switch(addr) {
-    case IE:
-        return ie_read();
     case LCDC:
     case STAT:
     case SCY:
@@ -205,9 +203,10 @@ uint8_t read_io(uint16_t addr) {
     case WAV14:
     case WAV15:
         return sound_read(addr);
+    case IF:
+        return if_read();
     default:
-        write_log("[memory] unimplemented read from IO port 0x%04X\n", addr);
-        die(-1, NULL);
+        write_log("[memory] warning: unimplemented read from IO port 0x%04X, returning ones\n", addr);
     }
 
     return 0xFF;    // unreachable
