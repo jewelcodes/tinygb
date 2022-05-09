@@ -126,3 +126,7 @@ typedef struct {
 
     int h, m, s, d, halt;
 } mbc3_t;
+
+typedef struct {
+    int rom_bank, ram_bank, ram_enable;
+} mbc5_t;
