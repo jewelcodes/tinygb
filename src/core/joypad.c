@@ -22,14 +22,16 @@ uint8_t joypad_read(uint16_t addr) {
     if(is_sgb && sgb_interfere) return sgb_read();
     uint8_t val;
 
-    if(selection) {
+    if(selection == 1) {
         // directions
         val = (~(pressed_keys >> 4)) & 0x0F;
         //write_log("[joypad] directions return value 0x%02X\n", val);
-    } else {
+    } else if(selection == 0) {
         // buttons
         val = (~pressed_keys) & 0x0F;
         //write_log("[joypad] buttons return value 0x%02X\n", val);
+    } else {
+        val = 0xFF;
     }
 
     return val;
@@ -63,9 +65,8 @@ void joypad_write(uint16_t addr, uint8_t byte) {
         selection = 1;
         //write_log("[joypad] write value 0x%02X, selecting directions\n", (~byte) & 0xFF);
     } else {
-        // undefined but we'll just use buttons
-        //write_log("[joypad] undefined write value 0x%02X, ignoring...\n", (~byte) & 0xFF);
-        selection = 0;
+        // undefined so we'll return ones
+        selection = 2;
     }
 }
 
