@@ -19,6 +19,11 @@ The links below point to screenshots of the gameplay.
 * [Pokemon Red](https://imgur.com/a/9qihzw9) (as of 5 May 2022)
 * [Pokemon Yellow](https://imgur.com/a/OYxf7MG) (as of 9 May 2022)
 
+## Requirements
+```sh
+sudo apt install libsdl2 libsdl2-dev
+```
+
 ## Building
 ```sh
 git clone https://github.com/jewelcodes/tinygb.git
