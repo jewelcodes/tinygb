@@ -294,11 +294,83 @@ inline void mbc3_write(uint16_t addr, uint8_t byte) {
 
 // MBC1 functions here
 inline void mbc1_write(uint16_t addr, uint8_t byte) {
-    die(-1, "unimplemented MBC1 writes\n");
+    if(addr >= 0x2000 && addr <= 0x3FFF) {
+        byte &= 0x1F;   // lower 5 bits
+        mbc1.bank1 = byte;
+    } else if(addr >= 0x4000 && addr <= 0x5FFF) {
+        byte &= 3;      // 2 bits
+        mbc1.bank2 = byte;
+    } else if(addr >= 0x6000 && addr <= 0x7FFF) {
+        byte &= 1;      // one bit
+        mbc1.mode = byte;
+    } else if(addr >= 0x0000 && addr <= 0x1FFF) {
+        byte &= 0x0F;
+        if(byte == 0x0A) {
+            mbc1.ram_enable = 1;
+            #ifdef MBC_LOG
+            write_log("[mbc] enabled access to external RAM\n");
+            #endif
+        } else {
+            mbc1.ram_enable = 0;
+            #ifdef MBC_LOG
+            write_log("[mbc] disabled access to external RAM\n");
+            #endif
+
+            write_ramfile();
+        }
+    } else if(addr >= 0xA000 && addr <= 0xBFFF) {
+        // ram
+        if(!mbc1.ram_enable) {
+            write_log("[mbc] warning: attempt to write to address 0x%04X value 0x%02X when external RAM is disabled\n", addr, byte);
+            return;
+        }
+
+        int ram_bank;
+        if(mbc1.mode) ram_bank = mbc1.bank2;
+        else ram_bank = 0;
+
+        ex_ram[(ram_bank * 8192) + (addr - 0xA000)] = byte;
+    } else {
+        write_log("[mbc] unimplemented write at address 0x%04X value 0x%02X in MBC%d\n", addr, byte, mbc_type);
+        die(-1, NULL);
+    }
+}
+
+inline uint8_t mbc1_read(uint16_t addr) {
+    int rom_bank, ram_bank;
+    uint8_t *rom_bytes = (uint8_t *)rom;
+
+    if(addr >= 0x0000 && addr <= 0x3FFF) {
+        if(mbc1.mode) {
+            rom_bank = mbc1.bank2 << 5;
+        } else {
+            rom_bank = 0;
+        }
+
+        return rom_bytes[(rom_bank * 16384) + addr];
+    } else if(addr >= 0x4000 && addr <= 0x7FFF) {
+        rom_bank = (mbc1.bank2 << 5) | mbc1.bank1;
+        addr -= 0x4000;
+        return rom_bytes[(rom_bank * 16384) + addr];
+    } else if(addr >= 0xA000 && addr <= 0xBFFF) {
+        if(!mbc1.ram_enable) {
+            write_log("[mbc] warning: attempt to read from address 0x%04X when external RAM is disabled, returning ones\n", addr);
+            return 0xFF;
+        }
+
+        if(mbc1.mode) ram_bank = mbc1.bank2;
+        else ram_bank = 0;
+
+        return ex_ram[(ram_bank * 8192) + (addr - 0xA000)];
+    } else {
+        write_log("[mbc] unimplemented read at address 0x%04X in MBC%d\n", addr, mbc_type);
+        die(-1, NULL);
+        return 0xFF;
+    }
 }
 
 
-// MBC5 funcitons here
+// MBC5 functions here
 inline void mbc5_write(uint16_t addr, uint8_t byte) {
     if(addr >= 0x2000 && addr <= 0x2FFF) {
         mbc5.rom_bank &= 0x100;
@@ -374,6 +446,8 @@ inline uint8_t mbc5_read(uint16_t addr) {
 // general fucntions called from memory.c
 uint8_t mbc_read(uint16_t addr) {
     switch(mbc_type) {
+    case 1:
+        return mbc1_read(addr);
     case 3:
         return mbc3_read(addr);
     case 5:

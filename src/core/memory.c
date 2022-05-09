@@ -218,6 +218,7 @@ uint8_t read_byte(uint16_t addr) {
     if(!mbc_type && addr <= 0x7FFF) {
         return rom_bytes[addr];
     } else if(addr <= 0x3FFF) {
+        if(mbc_type == 1) return mbc_read(addr);    // only MBC that allows banking at 0x0000-0x3FFF
         return rom_bytes[addr];
     } else if(addr >= 0xC000 && addr <= 0xCFFF) {
         return read_wram(0, addr - 0xC000);
