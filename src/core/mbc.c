@@ -23,10 +23,12 @@
  - Memory regions:
   - 0xA000-0xBFFF   up to 4 banks of 8 KiB RAM
   - 0x0000-0x1FFF   RAM enable (0x00 = disable, 0x0A in the lower 4 bits = enable)
-  - 0x2000-0x3FFF   lower 5 bits of ROM bank select; value zero is read as one (i.e. 0x00 and 0x01 both select the same bank)
-  - 0x4000-0x5FFF   upper 2 bits of ROM bank select OR RAM bank select according to next register
+  - 0x2000-0x3FFF   BANK1: lower 5 bits of ROM bank select; value zero is read as one (i.e. 0x00 and 0x01 both select the same bank)
+  - 0x4000-0x5FFF   BANK2: upper 2 bits of ROM bank select OR RAM bank select according to next register
   - 0x6000-0x7FFF   ROM/RAM banking toggle (0 = ROM, 1 = RAM)
-  - (only RAM bank 0 can be used in ROM mode, and only ROM banks 0x00-0x1F can be used in mode 1)
+   - In mode 0, ROM bank (BANK2 << 5) | BANK1 is available at 0x4000-0x7FFF
+   - In mode 1, ROM bank (BANK2 << 5) is available at 0x0000-0x3FFF the bank at
+     0x4000-0x7FFF remains the same.
 
  MBC3: (ROM up to full 2 MiB and RAM up to 32 KiB and real-time clock)
  - Memory regions:
@@ -107,10 +109,10 @@ void mbc_start(void *cart_ram) {
 
     switch(mbc_type) {
     case 1:
-        mbc1.ram_bank = 0;
-        mbc1.rom_bank = 1;
+        mbc1.bank1 = 1;
+        mbc1.bank2 = 0;
         mbc1.ram_enable = 0;
-        mbc1.rom_ram_toggle = 0;    // ROM
+        mbc1.mode = 0;
         break;
     case 3:
         mbc3.ram_rtc_bank = 0;

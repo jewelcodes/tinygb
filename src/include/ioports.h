@@ -117,7 +117,7 @@ typedef struct {
 } sound_t;
 
 typedef struct {
-    int rom_bank, ram_bank, ram_enable, rom_ram_toggle;
+    int bank1, bank2, ram_enable, mode;
 } mbc1_t;
 
 typedef struct {
