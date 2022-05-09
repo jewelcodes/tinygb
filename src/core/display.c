@@ -161,7 +161,7 @@ void display_write(uint16_t addr, uint8_t byte) {
 #endif
             display.vbk = byte;
         } else {
-            write_log("[display] write to VBK register value 0x%02X in non-CGB mode, ignoring...\n", byte);
+            //write_log("[display] write to VBK register value 0x%02X in non-CGB mode, ignoring...\n", byte);
         }
         return;
     default:
@@ -197,6 +197,13 @@ uint8_t display_read(uint16_t addr) {
         return display.wx;
     case WY:
         return display.wy;
+    case VBK:
+        if(is_cgb) {
+            return display.vbk;
+        } else {
+            //write_log("[display] undefined read from VBK in non-CGB mode, returning ones\n");
+            return 0xFF;
+        }
     default:
         write_log("[memory] unimplemented read from IO port 0x%04X\n", addr);
         die(-1, NULL);
