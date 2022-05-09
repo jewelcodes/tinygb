@@ -340,6 +340,10 @@ inline void mbc5_write(uint16_t addr, uint8_t byte) {
         }
 
         ex_ram[(mbc5.ram_bank * 8192) + (addr - 0xA000)] = byte;
+    } else if(addr <= 0x6000 && addr <= 0x7FFF) {
+        // i can't find any info on what this does but apparently pokemon yellow does this?
+        write_log("[mbc] warning: undefined write at address 0x%04X value 0x%02X in MBC5, ignoring\n", addr, byte);
+        return;
     } else {
         write_log("[mbc] unimplemented write at address 0x%04X value 0x%02X in MBC%d\n", addr, byte, mbc_type);
         die(-1, NULL);
