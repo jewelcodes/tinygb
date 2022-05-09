@@ -64,6 +64,7 @@
 
 mbc1_t mbc1;
 mbc3_t mbc3;
+mbc5_t mbc5;
 
 uint8_t *ex_ram;    // pointer to cart RAM
 int ex_ram_size;
@@ -96,9 +97,12 @@ void mbc_start(void *cart_ram) {
     case 3:
         ex_ram_size = 32768;
         break;
+    case 4:
+        ex_ram_size = 131072;   // 128 KiB for MBC5
+        break;
     default:
-        write_log("[mbc] undefined RAM size value 0x%02X, assuming 32 KB RAM\n", rom_bytes[0x149]);
-        ex_ram_size = 32768;
+        write_log("[mbc] undefined RAM size value 0x%02X, assuming 128 KiB RAM\n", rom_bytes[0x149]);
+        ex_ram_size = 131072;   // biggest possible value to stay on the safest size
     }
 
     switch(mbc_type) {
@@ -113,6 +117,11 @@ void mbc_start(void *cart_ram) {
         mbc3.rom_bank = 1;
         mbc3.ram_rtc_enable = 0;
         mbc3.ram_rtc_toggle = 0;    // RAM
+        break;
+    case 5:
+        mbc5.ram_bank = 0;
+        mbc5.rom_bank = 1;
+        mbc5.ram_enable = 0;
         break;
     default:
         write_log("[mbc] unimplemented MBC type %d\n", mbc_type);
@@ -287,11 +296,82 @@ inline void mbc1_write(uint16_t addr, uint8_t byte) {
 }
 
 
+// MBC5 funcitons here
+inline void mbc5_write(uint16_t addr, uint8_t byte) {
+    if(addr >= 0x2000 && addr <= 0x2FFF) {
+        mbc5.rom_bank &= 0x100;
+        mbc5.rom_bank |= byte;      // low 8 bits of ROM bank select
+
+        #ifdef MBC_LOG
+        write_log("[mbc] selecting ROM bank %d\n", mbc5.rom_bank);
+        #endif
+    } else if(addr >= 0x3000 && addr <= 0x3FFF) {
+        mbc5.rom_bank &= 0xFF;
+        mbc5.rom_bank |= (byte << 8);   // high bit of ROM bank select
+
+        #ifdef MBC_LOG
+        write_log("[mbc] selecting ROM bank %d\n", mbc5.rom_bank);
+        #endif
+    } else if(addr >= 0x4000 && addr <= 0x5FFF) {
+        byte &= 0x0F;
+        mbc5.ram_bank = byte;
+
+        #ifdef MBC_LOG
+        write_log("[mbc] selecting RAM bank %d\n", byte);
+        #endif
+    } else if(addr >= 0x0000 && addr <= 0x1FFF) {
+        if(byte == 0x0A) {
+            mbc5.ram_enable = 1;
+            #ifdef MBC_LOG
+            write_log("[mbc] enabled access to external RAM\n");
+            #endif
+        } else {
+            mbc5.ram_enable = 0;
+            #ifdef MBC_LOG
+            write_log("[mbc] disabled access to external RAM\n");
+            #endif
+
+            write_ramfile();
+        }
+    } else if(addr >= 0xA000 && addr <= 0xBFFF) {
+        if(!mbc5.ram_enable) {
+            write_log("[mbc] warning: attempt to write to address 0x%04X value 0x%02X when external RAM is disabled\n", addr, byte);
+            return;
+        }
+
+        ex_ram[(mbc5.ram_bank * 8192) + (addr - 0xA000)] = byte;
+    } else {
+        write_log("[mbc] unimplemented write at address 0x%04X value 0x%02X in MBC%d\n", addr, byte, mbc_type);
+        die(-1, NULL);
+    }
+}
+
+inline uint8_t mbc5_read(uint16_t addr) {
+    uint8_t *rom_bytes = (uint8_t *)rom;
+    if(addr >= 0x4000 && addr <= 0x7FFF) {
+        addr -= 0x4000;
+        return rom_bytes[(mbc5.rom_bank * 16384) + addr];
+    } else if(addr >= 0xA000 && addr <= 0xBFFF) {
+        if(!mbc5.ram_enable) {
+            write_log("[mbc] warning: attempt to read from address 0x%04X when external RAM is disabled, returning ones\n", addr);
+            return 0xFF;
+        }
+
+        return ex_ram[(mbc5.ram_bank * 8192) + (addr - 0xA000)];
+    } else {
+        write_log("[mbc] unimplemented read at address 0x%04X in MBC%d\n", addr, mbc_type);
+        die(-1, NULL);
+        return 0xFF;
+    }
+}
+
 // general fucntions called from memory.c
 uint8_t mbc_read(uint16_t addr) {
     switch(mbc_type) {
     case 3:
         return mbc3_read(addr);
+    case 5:
+        return mbc5_read(addr);
     default:
         write_log("[mbc] unimplemented read at address 0x%04X in MBC%d\n", addr, mbc_type);
         die(-1, NULL);
@@ -308,6 +388,8 @@ void mbc_write(uint16_t addr, uint8_t byte) {
         return mbc1_write(addr, byte);
     case 3:
         return mbc3_write(addr, byte);
+    case 5:
+        return mbc5_write(addr, byte);
     default:
         write_log("[mbc] unimplemented write at address 0x%04X value 0x%02X in MBC%d\n", addr, byte, mbc_type);
         die(-1, NULL);
