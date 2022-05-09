@@ -106,19 +106,14 @@ void memory_start() {
     case 0x13:
         mbc_type = 3;
         break;
-    /*case 0x15:
-    case 0x16:
-    case 0x17:
-        mbc_type = 4;
-        break;
     case 0x19:
     case 0x1A:
     case 0x1B:
-    case 0x1C:
+    /*case 0x1C:
     case 0x1D:
-    case 0x1E:
+    case 0x1E:*/    // skip these because wtf is a "rumble"
         mbc_type = 5;
-        break;*/
+        break;
     default:
         die(-1, "[mbc] cartridge type is 0x%02X: unimplemented\n", *cartridge_type);
         break;

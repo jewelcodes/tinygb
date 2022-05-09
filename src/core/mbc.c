@@ -46,6 +46,20 @@
         Bit 6   halt flag (0 = running, 1 = clock stopped)
         Bit 7   day counter carry bit (1 = overflown)
 
+ MBC5: (ROM up to 8 MiB and RAM up to 128 KiB)
+ - Memory regions:
+  - 0xA000-0xBFFF   up to 16 banks of 8 KiB RAM
+  - 0x0000-0x1FFF   RAM enable (0x00 = disable, 0x0A = enable) (*)
+  - 0x2000-0x2FFF   ROM bank select (low 8 bits) (**)
+  - 0x3000-0x3FFF   ROM bank select (9th bit in bit 0, all other bits ignored)
+  - 0x4000-0x5FFF   RAM bank select (low 4 bits, upper 4 bits ignored)
+
+  (*) Unlike MBC1 and MBC3, the RAM enable register in MBC5 is a full 8-bit
+      register, and ONLY 0x0A enables RAM, and not just in the low nibble.
+  (**) This is the only known MBC that allows ROM bank 0 to appear in the
+       0x4000-0x7FFF region of memory by writing zero to the ROM select
+       register. The MBC does not increment zeroes, unlike MBC1 and MBC3.
+
  */
 
 mbc1_t mbc1;
