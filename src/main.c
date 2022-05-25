@@ -96,8 +96,11 @@ int main(int argc, char **argv) {
     sound_start();
 
     SDL_Event e;
-    int key;
+    int key, is_down;
     while(1) {
+        key = 0;
+        is_down = 0;
+
         while(SDL_PollEvent(&e)) {
             switch(e.type) {
             case SDL_QUIT:
@@ -106,6 +109,8 @@ int main(int argc, char **argv) {
                 die(0, "");
             case SDL_KEYDOWN:
             case SDL_KEYUP:
+                is_down = (e.type == SDL_KEYDOWN);
+
                 // convert SDL keys to internal keys
                 // TODO: read these keys from a config file
                 switch(e.key.keysym.sym) {
@@ -137,13 +142,13 @@ int main(int argc, char **argv) {
                     key = 0;
                     break;
                 }
-
-                if(key) joypad_handle((e.type == SDL_KEYDOWN), key);
                 break;
             default:
                 break;
             }
         }
+
+        if(key) joypad_handle(is_down, key);
 
         for(timing.current_cycles = 0; timing.current_cycles < timing.main_cycles; ) {
             cpu_cycle();

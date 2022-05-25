@@ -589,7 +589,7 @@ void render_line() {
     }
 
     // window layer on top of the background
-    if(display.lcdc & 0x20 && display.wx >= 7 && display.wx <= 166 && display.wy <= 143) {
+    if(display.lcdc & 0x20) { // && display.wx >= 7 && display.wx <= 166 && display.wy <= 143) {
         // window enabled
         uint8_t *win_map;
         if(display.lcdc & 0x40) win_map = vram + 0x1C00;    // 0x9C00-0x9FFF
