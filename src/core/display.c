@@ -669,6 +669,7 @@ void display_cycle() {
 
     // mode 1 is a special case where it goes through all of these cycles 10 times
     uint8_t mode = display.stat & 3;
+
     //write_log("[display] cycles = %d, mode = %d, LY = %d, STAT = 0x%02X\n", display_cycles, mode, display.ly, display.stat);
     if(mode == 1) {  // vblank is a special case
         //write_log("[display] in vblank, io_if = 0x%02X\n", io_if);
@@ -695,6 +696,12 @@ void display_cycle() {
             // mode 2 -- reading OAM
             display.stat &= 0xFC;
             display.stat |= 2;
+
+            if(mode != 2 && display.stat & 0x40) {
+                // just entered mode 2
+                //write_log("entered mode 2 on line %d\n", display.ly);
+                send_interrupt(1);
+            }
         } else if(display_cycles <= 251) {
             // mode 3 -- reading OAM and VRAM
             display.stat &= 0xFC;
