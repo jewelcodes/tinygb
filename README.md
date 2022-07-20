@@ -13,11 +13,12 @@ TinyGB is a tiny and portable Game Boy emulator written entirely in C as a hobby
 - [ ] Serial port and linking
 - [ ] (Possibly) make the UI more user-friendly?
 
-## Playable Games
+## Tested Playable Games
 The links below point to screenshots of the gameplay.
 * [Tetris](https://imgur.com/a/hQExSti) (as of 2 May 2022)
 * [Pokemon Red](https://imgur.com/a/9qihzw9) (as of 5 May 2022)
 * [Pokemon Yellow](https://imgur.com/a/OYxf7MG) (as of 9 May 2022)
+* [Super Mario Land](https://imgur.com/a/A82l5sy) (as of 18 July 2022)
 
 ## Requirements
 ```sh
