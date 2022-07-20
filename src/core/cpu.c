@@ -68,7 +68,7 @@ int cycles_per_throttle;
 
 void count_cycles(int n) {
     n += 2;
-    //n <<= 1;    // x4 to machine cycles
+    n <<= 2;    // x4 to machine cycles
 
     timing.last_instruction_cycles = n;
     total_cycles += n;
@@ -136,6 +136,7 @@ void cpu_start() {
 
     write_log("[cpu] cycles per ms = %d\n", timing.cpu_cycles_ms);
     timing.main_cycles = 70224 * 2 * (frameskip+1);
+    write_log("[cpu] main loop runs %d times before checking for events\n", timing.main_cycles);
     //write_log("[cpu] cycles per v-line refresh = %d\n", timing.cpu_cycles_vline);
 }
 
@@ -187,7 +188,7 @@ void cpu_cycle() {
     }
 }
 
-void write_reg8(int reg, uint8_t r) {
+inline void write_reg8(int reg, uint8_t r) {
     switch(reg) {
     case REG_A:
         cpu.af &= 0x00FF;
@@ -223,7 +224,7 @@ void write_reg8(int reg, uint8_t r) {
     }
 }
 
-uint8_t read_reg8(int reg) {
+inline uint8_t read_reg8(int reg) {
     uint8_t ret;
     switch(reg) {
     case REG_A:
@@ -256,7 +257,7 @@ uint8_t read_reg8(int reg) {
     return ret;
 }
 
-void write_reg16(int reg, uint16_t r) {
+inline void write_reg16(int reg, uint16_t r) {
     switch(reg) {
     case REG_BC:
         cpu.bc = r;
@@ -276,7 +277,7 @@ void write_reg16(int reg, uint16_t r) {
     }
 }
 
-uint16_t read_reg16(int reg) {
+inline uint16_t read_reg16(int reg) {
     switch(reg) {
     case REG_BC:
         return cpu.bc;
