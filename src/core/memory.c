@@ -64,7 +64,7 @@ void memory_start() {
     } else if(*cgb_compatibility == 0xC0) {
         write_log("game only works on CGB\n");
         is_cgb = 1;
-        die(-1, "CGB functions are currently unimplemented\n");
+        //die(-1, "CGB functions are currently unimplemented\n");
     } else if(!*cgb_compatibility) {
         write_log("game doesn't support CGB\n");
         is_cgb = 0;

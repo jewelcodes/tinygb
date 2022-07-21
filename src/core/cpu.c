@@ -110,6 +110,8 @@ void cpu_start() {
     cpu.pc = 0x0100;    // skip the fixed rom and just exec the cartridge
     cpu.ime = 0;
 
+    //if(is_cgb) cpu.af = 0x11B0;     // A = 0x11
+
     io_if = 0;
     io_ie = 0;
 
