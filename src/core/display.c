@@ -7,7 +7,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-//#define DISPLAY_LOG
+#define DISPLAY_LOG
 
 /*
 
@@ -28,6 +28,9 @@ Notes to self regarding how the display works:
 
  */
 
+#define HDMA_GENERAL        0
+#define HDMA_HBLANK         1
+
 display_t display;
 int display_cycles = 0;
 
@@ -39,6 +42,11 @@ uint8_t oam[OAM_SIZE];
 int scaled_w, scaled_h;
 
 int framecount = 0;
+int hdma_active = 0;
+int hdma_type;
+
+int hdma_hblank_next_line;
+int hdma_hblank_cycles = 0;
 
 uint32_t bw_pallete[4] = {
     0xFFFFFF, 0xAAAAAA, 0x555555, 0x000000
@@ -76,6 +84,11 @@ void display_start() {
     }
 
     write_log("[display] initialized display\n");
+}
+
+void handle_general_hdma() {
+    die(-1, "unimplemented general purpose HDMA\n");
+    return;
 }
 
 void display_write(uint16_t addr, uint8_t byte) {
@@ -163,6 +176,63 @@ void display_write(uint16_t addr, uint8_t byte) {
         } else {
             //write_log("[display] write to VBK register value 0x%02X in non-CGB mode, ignoring...\n", byte);
         }
+    case HDMA1:
+        if(is_cgb) {
+#ifdef DISPLAY_LOG
+            write_log("[display] write to HDMA1 register value 0x%02X\n", byte);
+#endif
+            display.hdma1 = byte;
+        }
+        return;
+    case HDMA2:
+        if(is_cgb) {
+#ifdef DISPLAY_LOG
+            write_log("[display] write to HDMA2 register value 0x%02X\n", byte);
+#endif
+            display.hdma2 = byte;
+        }
+        return;
+    case HDMA3:
+        if(is_cgb) {
+#ifdef DISPLAY_LOG
+            write_log("[display] write to HDMA3 register value 0x%02X\n", byte);
+#endif
+            display.hdma3 = byte;
+        }
+        return;
+    case HDMA4:
+        if(is_cgb) {
+#ifdef DISPLAY_LOG
+            write_log("[display] write to HDMA4 register value 0x%02X\n", byte);
+#endif
+            display.hdma4 = byte;
+        }
+        return;
+    case HDMA5:
+        if(is_cgb) {
+#ifdef DISPLAY_LOG
+            write_log("[display] write to HDMA5 register value 0x%02X\n", byte);
+#endif
+            if(display.hdma5 == 0xFF && byte < 0x80) {
+                // cancelling a transfer
+                display.hdma5 = 0x00;
+                hdma_active = 0;
+            } else {
+                display.hdma5 = byte;
+                hdma_active = 1;
+                if(display.hdma5 & 0x80) {
+                    hdma_type = HDMA_HBLANK;
+                    if(display.ly >= 0 && display.ly < 143) hdma_hblank_next_line = display.ly + 1;
+                    else hdma_hblank_next_line = 0;
+
+                    //display.hdma5++;
+                    hdma_hblank_cycles = 0;
+                } else {
+                    hdma_type = HDMA_GENERAL;
+                    handle_general_hdma();
+                }
+            }
+        }
         return;
     default:
         write_log("[memory] unimplemented write to I/O port 0x%04X value 0x%02X\n", addr, byte);
@@ -204,6 +274,16 @@ uint8_t display_read(uint16_t addr) {
             //write_log("[display] undefined read from VBK in non-CGB mode, returning ones\n");
             return 0xFF;
         }
+    case HDMA1:
+        if(is_cgb) return display.hdma1;
+    case HDMA2:
+        if(is_cgb) return display.hdma2;
+    case HDMA3:
+        if(is_cgb) return display.hdma3;
+    case HDMA4:
+        if(is_cgb) return display.hdma4;
+    case HDMA5:
+        if(is_cgb) return display.hdma5;
     default:
         write_log("[memory] unimplemented read from IO port 0x%04X\n", addr);
         die(-1, NULL);
@@ -663,6 +743,37 @@ void display_cycle() {
         display.dma = 0;
     }
 
+    // handle HDMA transfers if ongoing
+    if(hdma_active && hdma_type == HDMA_HBLANK && display.ly == hdma_hblank_next_line) {
+        // copy 16 bytes of data
+        uint16_t hdma_src = (display.hdma1 << 8) | display.hdma2;
+        hdma_src &= 0xFFF0;
+        hdma_src += (hdma_hblank_cycles * 16);
+
+        uint16_t hdma_dst = (display.hdma3 << 8) | display.hdma4;
+        hdma_dst &= 0x1FF0;
+        hdma_dst += 0x8000;
+        hdma_dst += (hdma_hblank_cycles * 16);
+
+        write_log("copying HDMA at LY = %d, 16 bytes from 0x%04X to 0x%04X\n", display.ly, hdma_src, hdma_dst);
+
+        for(int i = 0; i < 16; i++) {
+            write_byte(hdma_dst+i, read_byte(hdma_src+i));
+        }
+
+        hdma_hblank_cycles++;
+        display.hdma5--;
+        if(!(display.hdma5 & 0x7F)) {
+            // completed
+            hdma_active = 0;
+            display.hdma5 = 0xFF;
+        } else {
+            // not yet
+            hdma_hblank_next_line++;
+            if(hdma_hblank_next_line > 143) hdma_hblank_next_line = 0;
+        }
+    }
+
     // mode 2 = 0 -> 79
     // mode 3 = 80 -> 251
     // mode 0 = 252 -> 455
@@ -745,7 +856,7 @@ void display_cycle() {
 }
 
 void vram_write(uint16_t addr, uint8_t byte) {
-    //write_log("[display] write to VRAM 0x%04X value 0x%02X\n", addr, byte);
+    write_log("[display] write to VRAM 0x%04X value 0x%02X\n", addr, byte);
     addr -= 0x8000;
 
     uint8_t *ptr = (uint8_t *)vram + addr;
