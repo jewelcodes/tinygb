@@ -67,8 +67,8 @@ int cycles_per_throttle;
 }*/
 
 void count_cycles(int n) {
-    n += 2;
-    n <<= 2;    // x4 to machine cycles
+    n++;
+    //n <<= 2;    // x4 to machine cycles
 
     timing.last_instruction_cycles = n;
     total_cycles += n;
