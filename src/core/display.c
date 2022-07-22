@@ -7,7 +7,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define DISPLAY_LOG
+//#define DISPLAY_LOG
 
 /*
 
@@ -174,7 +174,7 @@ void display_write(uint16_t addr, uint8_t byte) {
 #endif
             display.vbk = byte;
         } else {
-            //write_log("[display] write to VBK register value 0x%02X in non-CGB mode, ignoring...\n", byte);
+            write_log("[display] write to VBK register value 0x%02X in non-CGB mode, ignoring...\n", byte);
         }
     case HDMA1:
         if(is_cgb) {
@@ -182,6 +182,8 @@ void display_write(uint16_t addr, uint8_t byte) {
             write_log("[display] write to HDMA1 register value 0x%02X\n", byte);
 #endif
             display.hdma1 = byte;
+        } else {
+            write_log("[display] write to HDMA1 register value 0x%02X in non-CGB mode, ignoring...\n", byte);
         }
         return;
     case HDMA2:
@@ -190,6 +192,8 @@ void display_write(uint16_t addr, uint8_t byte) {
             write_log("[display] write to HDMA2 register value 0x%02X\n", byte);
 #endif
             display.hdma2 = byte;
+        } else {
+            write_log("[display] write to HDMA2 register value 0x%02X in non-CGB mode, ignoring...\n", byte);
         }
         return;
     case HDMA3:
@@ -198,6 +202,8 @@ void display_write(uint16_t addr, uint8_t byte) {
             write_log("[display] write to HDMA3 register value 0x%02X\n", byte);
 #endif
             display.hdma3 = byte;
+        } else {
+            write_log("[display] write to HDMA3 register value 0x%02X in non-CGB mode, ignoring...\n", byte);
         }
         return;
     case HDMA4:
@@ -206,6 +212,8 @@ void display_write(uint16_t addr, uint8_t byte) {
             write_log("[display] write to HDMA4 register value 0x%02X\n", byte);
 #endif
             display.hdma4 = byte;
+        } else {
+            write_log("[display] write to HDMA4 register value 0x%02X in non-CGB mode, ignoring...\n", byte);
         }
         return;
     case HDMA5:
@@ -213,9 +221,9 @@ void display_write(uint16_t addr, uint8_t byte) {
 #ifdef DISPLAY_LOG
             write_log("[display] write to HDMA5 register value 0x%02X\n", byte);
 #endif
-            if(display.hdma5 == 0xFF && byte < 0x80) {
+            if(hdma_active && byte < 0x80) {
                 // cancelling a transfer
-                display.hdma5 = 0x00;
+                display.hdma5 = 0x00;;
                 hdma_active = 0;
             } else {
                 display.hdma5 = byte;
@@ -225,13 +233,15 @@ void display_write(uint16_t addr, uint8_t byte) {
                     if(display.ly >= 0 && display.ly < 143) hdma_hblank_next_line = display.ly + 1;
                     else hdma_hblank_next_line = 0;
 
-                    //display.hdma5++;
+                    display.hdma5++;
                     hdma_hblank_cycles = 0;
                 } else {
                     hdma_type = HDMA_GENERAL;
                     handle_general_hdma();
                 }
             }
+        } else {
+            write_log("[display] write to HDMA5 register value 0x%02X in non-CGB mode, ignoring...\n", byte);
         }
         return;
     default:
@@ -276,14 +286,19 @@ uint8_t display_read(uint16_t addr) {
         }
     case HDMA1:
         if(is_cgb) return display.hdma1;
+        else return 0xFF;
     case HDMA2:
         if(is_cgb) return display.hdma2;
+        else return 0xFF;
     case HDMA3:
         if(is_cgb) return display.hdma3;
+        else return 0xFF;
     case HDMA4:
         if(is_cgb) return display.hdma4;
+        else return 0xFF;
     case HDMA5:
         if(is_cgb) return display.hdma5;
+        else return 0xFF;
     default:
         write_log("[memory] unimplemented read from IO port 0x%04X\n", addr);
         die(-1, NULL);
@@ -791,7 +806,12 @@ void display_cycle() {
             if(display.ly >= 154) {
                 // vblank is now over
                 display.stat &= 0xFC;
+                display.stat |= 2;      // enter mode 2
                 display.ly = 0;
+
+                if(display.stat & 0x40) {
+                    send_interrupt(1);
+                }
             }
 
             if(display.ly == display.lyc) {
@@ -823,6 +843,13 @@ void display_cycle() {
         } else if(display_cycles <= 455) {
             // mode 0
             display.stat &= 0xFC;
+
+            if(mode != 0 && display.stat & 0x08) {
+                // just entered mode 0
+                //die(-1, "entered mode 0 STAT\n");
+                send_interrupt(1);
+            }
+
         } else if(display_cycles >= 456) {
             // a horizontal line has been completed
             display_cycles -= 456;  // dont lose any cycles
@@ -856,7 +883,7 @@ void display_cycle() {
 }
 
 void vram_write(uint16_t addr, uint8_t byte) {
-    write_log("[display] write to VRAM 0x%04X value 0x%02X\n", addr, byte);
+    //write_log("[display] write to VRAM 0x%04X value 0x%02X\n", addr, byte);
     addr -= 0x8000;
 
     uint8_t *ptr = (uint8_t *)vram + addr;
