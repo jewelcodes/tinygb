@@ -68,7 +68,7 @@ int cycles_per_throttle;
 
 void count_cycles(int n) {
     n++;
-    //n <<= 2;    // x4 to machine cycles
+    n <<= 1;    // x4 to machine cycles
 
     timing.last_instruction_cycles = n;
     total_cycles += n;
@@ -117,7 +117,7 @@ void cpu_start() {
 
     // FIX: turns out this is incorrect and the CGB actually supports a double
     // speed function, but it is not turned on by default; it always starts at
-    // 4.194 MHz for both original GB and CGB 
+    // 4.194 MHz for both original GB and CGB
     /*if(is_cgb) {
         cpu_speed = CGB_CPU_SPEED;
     } else {
@@ -1797,7 +1797,7 @@ void daa() {
     if(!a) cpu.af |= FLAG_ZF;
     else cpu.af &= (~FLAG_ZF);
 
-    cpu.af &= (~FLAG_H); 
+    cpu.af &= (~FLAG_H);
 
     write_reg8(REG_A, a);
     cpu.pc++;
@@ -2185,7 +2185,7 @@ void adc_d8() {
     count_cycles(2);
 }
 
-/* 
+/*
     EXTENDED OPCODES
     these are all prefixed with 0xCB first
 */
@@ -2542,7 +2542,7 @@ void swap_hl() {
 void rlc_r() {
     uint8_t opcode = read_byte(cpu.pc+1);
     int reg = opcode & 7;
-    
+
 #ifdef DISASM
     disasm_log("rlc %s\n", registers[reg]);
 #endif
