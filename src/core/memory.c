@@ -205,6 +205,10 @@ uint8_t read_io(uint16_t addr) {
         return sound_read(addr);
     case IF:
         return if_read();
+    case KEY1:
+    case RP:
+    case SVBK:
+        return cgb_read(addr);
     default:
         write_log("[memory] warning: unimplemented read from IO port 0x%04X, returning ones\n", addr);
     }
@@ -330,6 +334,10 @@ void write_io(uint16_t addr, uint8_t byte) {
         return sound_write(addr, byte);
     case P1:
         return joypad_write(addr, byte);
+    case KEY1:
+    case RP:
+    case SVBK:
+        return cgb_write(addr, byte);
     default:
         write_log("[memory] unimplemented write to I/O port 0x%04X value 0x%02X\n", addr, byte);
         return;

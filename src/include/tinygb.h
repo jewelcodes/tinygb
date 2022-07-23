@@ -94,6 +94,7 @@ void cpu_cycle();
 void cpu_log();
 
 // memory
+extern int work_ram_bank;
 uint8_t read_byte(uint16_t);
 uint16_t read_word(uint16_t);
 void write_byte(uint16_t, uint8_t);
@@ -139,3 +140,8 @@ void sgb_start();
 void sgb_write(uint8_t);
 uint8_t sgb_read();
 void sgb_recolor(uint32_t *, uint32_t *, int, uint32_t *);
+
+// CGB functions
+int is_double_speed;
+void cgb_write(uint16_t, uint8_t);
+uint8_t cgb_read(uint16_t);
