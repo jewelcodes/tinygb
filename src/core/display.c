@@ -221,7 +221,7 @@ void display_write(uint16_t addr, uint8_t byte) {
 #ifdef DISPLAY_LOG
             write_log("[display] write to HDMA5 register value 0x%02X\n", byte);
 #endif
-            if(hdma_active && byte < 0x80) {
+            /*if(hdma_active && byte < 0x80) {
                 // cancelling a transfer
                 display.hdma5 = 0x00;;
                 hdma_active = 0;
@@ -239,7 +239,10 @@ void display_write(uint16_t addr, uint8_t byte) {
                     hdma_type = HDMA_GENERAL;
                     handle_general_hdma();
                 }
-            }
+            }*/
+
+            die(-1, "unimplemented HDMA5 writes\n");
+
         } else {
             write_log("[display] write to HDMA5 register value 0x%02X in non-CGB mode, ignoring...\n", byte);
         }
