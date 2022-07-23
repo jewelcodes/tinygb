@@ -75,6 +75,11 @@
 #define HDMA4   0xFF54
 #define HDMA5   0xFF55
 
+// misc CGB registers
+#define KEY1    0xFF4D
+#define RP      0xFF56
+#define SVBK    0xFF70
+
 /// interrupt enable control register
 #define IE      0xFFFF
 
