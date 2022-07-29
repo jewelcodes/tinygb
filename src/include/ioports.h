@@ -112,7 +112,7 @@ extern uint8_t io_if, io_ie;
 
 typedef struct {
     uint8_t lcdc, stat, scy, scx, ly, lyc, dma, bgp, obp0, obp1, wx, wy, vbk, hdma1, hdma2, hdma3, hdma4, hdma5;
-    uint8_t bgpi, bgpd, obpi, obpd;
+    uint8_t bgpi, bgpd[64], obpi, obpd[64];
 } display_t;
 
 typedef struct {

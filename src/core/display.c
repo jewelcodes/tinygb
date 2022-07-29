@@ -65,6 +65,14 @@ void display_start() {
     display.wy = 0;
     display.wx = 0;
 
+    if(is_cgb) {
+        for(int i = 0; i < 32; i++) {
+            // bg palette is initialized to white in CGB
+            display.bgpd[i*2] = 0xFF;
+            display.bgpd[(i*2)+1] = 0x7F;
+        }
+    }
+
     scaled_w = scaling*GB_WIDTH;
     scaled_h = scaling*GB_HEIGHT;
 
@@ -245,6 +253,46 @@ void display_write(uint16_t addr, uint8_t byte) {
 
         } else {
             write_log("[display] write to HDMA5 register value 0x%02X in non-CGB mode, ignoring...\n", byte);
+        }
+        return;
+    case BGPI:
+        if(!is_cgb) {
+            write_log("[display] write to BGPI register value 0x%02X in non-CGB mode, ignoring...\n", byte);
+        } else {
+            display.bgpi = byte;
+        }
+        return;
+    case OBPI:
+        if(!is_cgb) {
+            write_log("[display] write to OBPI register value 0x%02X in non-CGB mode, ignoring...\n", byte);
+        } else {
+            display.obpi = byte;
+        }
+        return;
+    case BGPD:
+        if(!is_cgb) {
+            write_log("[display] write to BGPD register value 0x%02X in non-CGB mode, ignoring...\n", byte);
+        } else {
+            int index = display.bgpi & 0x3F;
+            display.bgpd[index] = byte;
+
+            if(display.bgpi & 0x80) {   // auto increment
+                index++;
+                display.bgpi = (index & 0x3F) | 0x80;
+            }
+        }
+        return;
+    case OBPD:
+        if(!is_cgb) {
+            write_log("[display] write to OBPD register value 0x%02X in non-CGB mode, ignoring...\n", byte);
+        } else {
+            int index = display.obpi & 0x3F;
+            display.obpd[index] = byte;
+
+            if(display.obpi & 0x80) {   // auto increment
+                index++;
+                display.obpi = (index & 0x3F) | 0x80;
+            }
         }
         return;
     default:
@@ -759,37 +807,6 @@ void display_cycle() {
         }
 
         display.dma = 0;
-    }
-
-    // handle HDMA transfers if ongoing
-    if(hdma_active && hdma_type == HDMA_HBLANK && display.ly == hdma_hblank_next_line) {
-        // copy 16 bytes of data
-        uint16_t hdma_src = (display.hdma1 << 8) | display.hdma2;
-        hdma_src &= 0xFFF0;
-        hdma_src += (hdma_hblank_cycles * 16);
-
-        uint16_t hdma_dst = (display.hdma3 << 8) | display.hdma4;
-        hdma_dst &= 0x1FF0;
-        hdma_dst += 0x8000;
-        hdma_dst += (hdma_hblank_cycles * 16);
-
-        write_log("copying HDMA at LY = %d, 16 bytes from 0x%04X to 0x%04X\n", display.ly, hdma_src, hdma_dst);
-
-        for(int i = 0; i < 16; i++) {
-            write_byte(hdma_dst+i, read_byte(hdma_src+i));
-        }
-
-        hdma_hblank_cycles++;
-        display.hdma5--;
-        if(!(display.hdma5 & 0x7F)) {
-            // completed
-            hdma_active = 0;
-            display.hdma5 = 0xFF;
-        } else {
-            // not yet
-            hdma_hblank_next_line++;
-            if(hdma_hblank_next_line > 143) hdma_hblank_next_line = 0;
-        }
     }
 
     // mode 2 = 0 -> 79
