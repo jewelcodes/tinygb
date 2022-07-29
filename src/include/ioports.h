@@ -68,12 +68,18 @@
 #define OBP1    0xFF49
 #define WY      0xFF4A
 #define WX      0xFF4B
-#define VBK     0xFF4F
+
+// CGB-only display controller registers
+#define VBK     0xFF4F  // vram bank
 #define HDMA1   0xFF51
 #define HDMA2   0xFF52
 #define HDMA3   0xFF53
 #define HDMA4   0xFF54
 #define HDMA5   0xFF55
+#define BGPI    0xFF68  // bg pallette index/data
+#define BGPD    0xFF69
+#define OBPI    0xFF6A  // obj pallette index/data
+#define OBPD    0xFF6B
 
 // misc CGB registers
 #define KEY1    0xFF4D

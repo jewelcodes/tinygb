@@ -157,6 +157,10 @@ uint8_t read_io(uint16_t addr) {
     case HDMA3:
     case HDMA4:
     case HDMA5:
+    case BGPI:
+    case BGPD:
+    case OBPI:
+    case OBPD:
         return display_read(addr);
     case P1:
         return joypad_read(addr);
@@ -284,6 +288,10 @@ void write_io(uint16_t addr, uint8_t byte) {
     case HDMA3:
     case HDMA4:
     case HDMA5:
+    case BGPI:
+    case BGPD:
+    case OBPI:
+    case OBPD:
         return display_write(addr, byte);
     case SB:
         return sb_write(byte);
