@@ -76,9 +76,9 @@
 #define HDMA3   0xFF53
 #define HDMA4   0xFF54
 #define HDMA5   0xFF55
-#define BGPI    0xFF68  // bg pallette index/data
+#define BGPI    0xFF68  // bg palette index/data
 #define BGPD    0xFF69
-#define OBPI    0xFF6A  // obj pallette index/data
+#define OBPI    0xFF6A  // obj palette index/data
 #define OBPD    0xFF6B
 
 // misc CGB registers

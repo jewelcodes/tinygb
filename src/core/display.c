@@ -48,7 +48,7 @@ int hdma_type;
 int hdma_hblank_next_line;
 int hdma_hblank_cycles = 0;
 
-uint32_t bw_pallete[4] = {
+uint32_t bw_palette[4] = {
     0xFFFFFF, 0xAAAAAA, 0x555555, 0x000000
 };
 
@@ -449,7 +449,7 @@ void plot_bg_tile(int is_window, int x, int y, uint8_t tile, uint8_t *tile_data)
 
             color_index = (display.bgp >> (data * 2)) & 3;
             //color_index = data;
-            color = bw_pallete[color_index];
+            color = bw_palette[color_index];
             background_buffer[(yp * 256) + xp] = color;
 
             /*if(color != 0xFFFFFF) {
@@ -512,7 +512,7 @@ void plot_small_sprite(int n) {
     //write_log("[display] plotting tile %d at x/y %d/%d\n", tile, x, y);
 
     // get bg color zero for layering
-    bg_color_zero = bw_pallete[display.bgp & 3];
+    bg_color_zero = bw_palette[display.bgp & 3];
 
     // 8x8 tiles
     uint8_t *tile_data = vram + 0x0000;     // always starts at 0x8000, unlike bg/window
@@ -531,10 +531,10 @@ void plot_small_sprite(int n) {
 
             data = data_hi | data_lo;
 
-            if(flags & 0x10) color_index = (display.obp1 >> (data * 2)) & 3;    // pallete 1
-            else color_index = (display.obp0 >> (data * 2)) & 3;    // pallete 0
+            if(flags & 0x10) color_index = (display.obp1 >> (data * 2)) & 3;    // palette 1
+            else color_index = (display.obp0 >> (data * 2)) & 3;    // palette 0
 
-            color = bw_pallete[color_index];
+            color = bw_palette[color_index];
 
             // sprites may be on top of or under the background
             if(flags & 0x80) {
@@ -564,10 +564,10 @@ void plot_small_sprite(int n) {
 
             data = data_hi | data_lo;
 
-            if(flags & 0x10) color_index = (display.obp1 >> (data * 2)) & 3;    // pallete 1
-            else color_index = (display.obp0 >> (data * 2)) & 3;    // pallete 0
+            if(flags & 0x10) color_index = (display.obp1 >> (data * 2)) & 3;    // palette 1
+            else color_index = (display.obp0 >> (data * 2)) & 3;    // palette 0
 
-            color = bw_pallete[color_index];
+            color = bw_palette[color_index];
 
             sprite_colors[sprite_data_index] = color;
             sprite_data[sprite_data_index] = data;
@@ -619,7 +619,7 @@ void render_line() {
             break;
         case 3:         // freeze color zero
         default:
-            sgb_blank_color = bw_pallete[0];
+            sgb_blank_color = bw_palette[0];
         }
 
         for(int i = 0; i < GB_WIDTH; i++) {
@@ -682,7 +682,7 @@ void render_line() {
     } else {
         // no background, clear to white
         for(int i = 0; i < GB_WIDTH*GB_HEIGHT; i++) {
-            temp_framebuffer[i] = bw_pallete[0];
+            temp_framebuffer[i] = bw_palette[0];
         }
     }
 
@@ -734,7 +734,7 @@ void render_line() {
 
     // done, copy the singular line we were at
     if(using_sgb_palette) {
-        return sgb_recolor(dst, src, display.ly, bw_pallete);
+        return sgb_recolor(dst, src, display.ly, bw_palette);
     }
 
     for(int i = 0; i < GB_WIDTH; i++) {
