@@ -39,6 +39,13 @@ void die(int status, const char *msg, ...) {
     SDL_Quit();
 
     if(ram) {
+#ifdef CGB_DEBUG
+        if(is_cgb) {
+            cgb_dump_bgpd();
+            cgb_dump_obpd();
+        }
+#endif
+
         cpu_log();
 
         FILE *memdump = fopen("memory.bin", "w");

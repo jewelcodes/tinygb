@@ -52,6 +52,47 @@ uint32_t bw_palette[4] = {
     0xFFFFFF, 0xAAAAAA, 0x555555, 0x000000
 };
 
+// dummy debug function
+void cgb_dump_bgpd() {
+    uint32_t color32;
+    uint16_t color16;
+    uint8_t r, g, b;
+
+    for(int i = 0; i < 8; i++) {
+        for(int j = 0; j < 4; j++) {
+            color16 = display.bgpd[(i*8)+(j*2)];
+            color16 |= (display.bgpd[(i*8)+(j*2)+1] << 8);
+
+            color32 = truecolor(color16);
+            r = (color32 >> 16) & 0xFF;
+            g = (color32 >> 8) & 0xFF;
+            b = color32 & 0xFF;
+
+            write_log("[display] CGB bg palette %d color %d = \e[38;2;%d;%d;%dm#%06X\e[0m\n", i, j, r, g, b, color32);
+        }
+    }
+}
+
+void cgb_dump_obpd() {
+    uint32_t color32;
+    uint16_t color16;
+    uint8_t r, g, b;
+
+    for(int i = 0; i < 8; i++) {
+        for(int j = 0; j < 4; j++) {
+            color16 = display.obpd[(i*8)+(j*2)];
+            color16 |= (display.obpd[(i*8)+(j*2)+1] << 8);
+
+            color32 = truecolor(color16);
+            r = (color32 >> 16) & 0xFF;
+            g = (color32 >> 8) & 0xFF;
+            b = color32 & 0xFF;
+
+            write_log("[display] CGB obj palette %d color %d = \e[38;2;%d;%d;%dm#%06X\e[0m\n", i, j, r, g, b, color32);
+        }
+    }
+}
+
 void display_start() {
     memset(&display, 0, sizeof(display_t));
     display.lcdc = 0x91;
