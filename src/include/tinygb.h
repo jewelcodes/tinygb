@@ -143,7 +143,7 @@ void sgb_recolor(uint32_t *, uint32_t *, int, uint32_t *);
 uint32_t truecolor(uint16_t);
 
 // CGB functions
-#define CGB_DEBUG
+//#define CGB_DEBUG
 int is_double_speed;
 void cgb_write(uint16_t, uint8_t);
 uint8_t cgb_read(uint16_t);
