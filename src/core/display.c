@@ -140,6 +140,38 @@ void handle_general_hdma() {
     return;
 }
 
+void handle_hblank_hdma() {
+    uint16_t src = (display.hdma1 << 8) | (display.hdma2 & 0xF0);
+    uint16_t dst = ((display.hdma3 & 1) << 8) | (display.hdma4 & 0xF0);
+    dst += 0x8000; 
+
+#ifdef DISPLAY_LOG
+    write_log("[display] handle H-blank transfer from 0x%04X to 0x%04X at LY=%d\n", src, dst, display.ly);
+#endif
+
+    for(int i = 0; i < 16; i++) {
+        write_byte(dst+i, read_byte(src+i));
+    }
+
+    src += 16;
+    dst += 16;
+    dst -= 0x8000;
+
+    display.hdma1 = (src >> 8) & 0xFF;
+    display.hdma2 = src & 0xF0;
+    display.hdma3 = (dst >> 8) & 0x01;
+    display.hdma4 = dst & 0xF0;
+
+    display.hdma5--;
+    if(display.hdma5 == 0x7F) {
+        // done
+#ifdef DISPLAY_LOG
+        write_log("[display] completed H-blank transfer\n");
+#endif
+        display.hdma5 = 0xFF;
+    }
+}
+
 void display_write(uint16_t addr, uint8_t byte) {
     switch(addr) {
     case LCDC:
@@ -219,8 +251,10 @@ void display_write(uint16_t addr, uint8_t byte) {
     case VBK:
         if(is_cgb) {
 #ifdef DISPLAY_LOG
-            write_log("[display] write to VBK register value 0x%02X\n", byte);
+            write_log("[display] write to VBK register value 0x%02X, ignoring upper 7 bits...\n", byte);
 #endif
+
+            byte &= 1;  // only lowest bit matters
             display.vbk = byte;
         } else {
             write_log("[display] write to VBK register value 0x%02X in non-CGB mode, ignoring...\n", byte);
@@ -270,27 +304,27 @@ void display_write(uint16_t addr, uint8_t byte) {
 #ifdef DISPLAY_LOG
             write_log("[display] write to HDMA5 register value 0x%02X\n", byte);
 #endif
-            /*if(hdma_active && byte < 0x80) {
-                // cancelling a transfer
-                display.hdma5 = 0x00;;
-                hdma_active = 0;
-            } else {
-                display.hdma5 = byte;
-                hdma_active = 1;
-                if(display.hdma5 & 0x80) {
-                    hdma_type = HDMA_HBLANK;
-                    if(display.ly >= 0 && display.ly < 143) hdma_hblank_next_line = display.ly + 1;
-                    else hdma_hblank_next_line = 0;
 
-                    display.hdma5++;
-                    hdma_hblank_cycles = 0;
-                } else {
-                    hdma_type = HDMA_GENERAL;
-                    handle_general_hdma();
+            if(byte & 0x80) {
+                // H-blank DMA
+#ifdef DISPLAY_LOG
+                write_log("[display] H-blank DMA %d bytes from 0x%02X%02X to VRAM 0x%02X%02X\n", ((byte & 0x7F) + 1)*16, display.hdma1, display.hdma2, display.hdma3 + 0x80, display.hdma4);
+#endif
+                display.hdma5 = byte;   // display_cycle() will handle the rest from here
+                if(!(display.stat & 3)) {   // already in mode 0 (H-blank)
+                    handle_hblank_hdma();
                 }
-            }*/
-
-            die(-1, "unimplemented HDMA5 writes\n");
+            } else {
+                // differentiate between general purpose DMA and cancelling H-blank DMA
+                if(display.hdma5 == 0xFF || !(display.hdma5 & 0x80)) {
+                    die(-1, "[display] unimplemented general purpose DMA\n");
+                } else {
+#ifdef DISPLAY_LOG
+                    write_log("[display] cancelled H-blank DMA transfer\n");
+                    display.hdma5 &= 0x7F;
+#endif
+                }
+            }
 
         } else {
             write_log("[display] write to HDMA5 register value 0x%02X in non-CGB mode, ignoring...\n", byte);
@@ -389,7 +423,10 @@ uint8_t display_read(uint16_t addr) {
         if(is_cgb) return display.hdma4;
         else return 0xFF;
     case HDMA5:
-        if(is_cgb) return display.hdma5;
+        if(is_cgb) {
+            if(display.hdma5 == 0xFF) return 0xFF;
+            else return display.hdma5 ^ 0x80;   // 0 = active, 1 = inactive, contrary to common sense 
+        }
         else return 0xFF;
     default:
         write_log("[memory] unimplemented read from IO port 0x%04X\n", addr);
@@ -909,6 +946,11 @@ void display_cycle() {
                 // just entered mode 0
                 //die(-1, "entered mode 0 STAT\n");
                 send_interrupt(1);
+
+                // handle CGB HDMA transfer
+                if(is_cgb && display.hdma5 & 0x80 && display.hdma5 != 0xFF) {
+                    handle_hblank_hdma();
+                }
             }
 
         } else if(display_cycles >= 456) {
@@ -929,8 +971,18 @@ void display_cycle() {
                 update_framebuffer();
                 framecount++;
             } else {
-                // return to mode zero
+                /* // return to mode zero       -- what?
+                display.stat &= 0xFC; */
+
+                // mode TWO not zero
                 display.stat &= 0xFC;
+                display.stat |= 2;
+
+                if(mode != 2 && display.stat & 0x40) {
+                    // just entered mode 2
+                    //write_log("entered mode 2 on line %d\n", display.ly);
+                    send_interrupt(1);
+                }
             }
 
             if(display.ly == display.lyc) {
