@@ -70,8 +70,8 @@ mbc5_t mbc5;
 
 uint8_t *ex_ram;    // pointer to cart RAM
 int ex_ram_size;
-
 char *ex_ram_filename;
+int ex_ram_modified = 0;
 
 void mbc_start(void *cart_ram) {
     ex_ram_filename = calloc(strlen(rom_filename) + 5, 1);
@@ -153,7 +153,7 @@ void mbc_start(void *cart_ram) {
 }
 
 void write_ramfile() {
-    if(!ex_ram_size) return;
+    if(!ex_ram_size || !ex_ram_modified) return;
 
     remove(ex_ram_filename);
     FILE *file = fopen(ex_ram_filename, "wb");
@@ -257,6 +257,7 @@ inline void mbc3_write(uint16_t addr, uint8_t byte) {
         byte &= 0x0F;
         if(byte == 0x0A) {
             mbc3.ram_rtc_enable = 1;
+            ex_ram_modified = 0;
             #ifdef MBC_LOG
             write_log("[mbc] enabled access to external RAM and RTC\n");
             #endif
@@ -278,9 +279,10 @@ inline void mbc3_write(uint16_t addr, uint8_t byte) {
         if(mbc3.ram_rtc_bank <= 3) {
             // ram
             ex_ram[(mbc3.ram_rtc_bank * 8192) + (addr - 0xA000)] = byte;
+            ex_ram_modified = 1;
         } else {
             // rtc
-            write_log("[mbc] TODO: implement writing to RTC registers (register 0x%02X value 0x%02X)\n", mbc3.ram_rtc_bank, byte);
+            //write_log("[mbc] TODO: implement writing to RTC registers (register 0x%02X value 0x%02X)\n", mbc3.ram_rtc_bank, byte);
             return;     // ignore for now
         }
     } else if(addr >= 0x6000 && addr <= 0x7FFF) {
@@ -307,6 +309,7 @@ inline void mbc1_write(uint16_t addr, uint8_t byte) {
         byte &= 0x0F;
         if(byte == 0x0A) {
             mbc1.ram_enable = 1;
+            ex_ram_modified = 0;
             #ifdef MBC_LOG
             write_log("[mbc] enabled access to external RAM\n");
             #endif
@@ -330,6 +333,7 @@ inline void mbc1_write(uint16_t addr, uint8_t byte) {
         else ram_bank = 0;
 
         ex_ram[(ram_bank * 8192) + (addr - 0xA000)] = byte;
+        ex_ram_modified = 1;
     } else {
         write_log("[mbc] unimplemented write at address 0x%04X value 0x%02X in MBC%d\n", addr, byte, mbc_type);
         die(-1, NULL);
@@ -396,6 +400,7 @@ inline void mbc5_write(uint16_t addr, uint8_t byte) {
     } else if(addr >= 0x0000 && addr <= 0x1FFF) {
         if(byte == 0x0A) {
             mbc5.ram_enable = 1;
+            ex_ram_modified = 0;
             #ifdef MBC_LOG
             write_log("[mbc] enabled access to external RAM\n");
             #endif
@@ -414,6 +419,7 @@ inline void mbc5_write(uint16_t addr, uint8_t byte) {
         }
 
         ex_ram[(mbc5.ram_bank * 8192) + (addr - 0xA000)] = byte;
+        ex_ram_modified = 1;
     } else if(addr <= 0x6000 && addr <= 0x7FFF) {
         // i can't find any info on what this does but apparently pokemon yellow does this?
         write_log("[mbc] warning: undefined write at address 0x%04X value 0x%02X in MBC5, ignoring\n", addr, byte);
