@@ -7,8 +7,8 @@ TinyGB is a tiny and portable Game Boy emulator written entirely in C as a hobby
 - [x] User input
 - [x] Memory bank controllers to save games and/or play ROMs larger than 32 KiB
 - [x] Super Game Boy color functions
+- [x] Game Boy Color functions
 - [ ] Super Game Boy borders
-- [ ] Game Boy Color functions
 - [ ] Sound output
 - [ ] Serial port and linking
 - [ ] (Possibly) make the UI more user-friendly?
@@ -19,6 +19,7 @@ The links below point to screenshots of the gameplay.
 * [Pokemon Red](https://imgur.com/a/9qihzw9) (as of 5 May 2022)
 * [Pokemon Yellow](https://imgur.com/a/OYxf7MG) (as of 9 May 2022)
 * [Super Mario Land](https://imgur.com/a/A82l5sy) (as of 18 July 2022)
+* [Pokemon Crystal](https://imgur.com/a/oz6eODB) (as of 2 August 2022)
 
 ## Requirements
 ```sh
