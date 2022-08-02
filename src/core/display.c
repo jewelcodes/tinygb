@@ -507,6 +507,19 @@ void cgb_bg_palette(int palette) {  // dump the palette into cgb_palette[]
     }
 }
 
+void cgb_obj_palette(int palette) {  // dump the palette into cgb_palette[]
+    uint16_t color16;
+    uint32_t color32;
+
+    for(int i = 0; i < 4; i++) {
+        color16 = display.obpd[(palette<<3)+(i<<1)] & 0xFF;
+        color16 |= (display.obpd[(palette<<3)+(i<<1)+1] & 0xFF) << 8;
+        color32 = truecolor(color16);
+
+        cgb_palette[i] = color32;
+    }
+}
+
 void plot_bg_tile(int is_window, int x, int y, uint8_t tile, uint8_t *tile_data, uint8_t cgb_flags) {
     // x and y are in tiles, not pixels
     int xp = x << 3;    // x8
@@ -680,53 +693,28 @@ void plot_small_sprite(int n) {
 
     //write_log("[display] plotting tile %d at x/y %d/%d\n", tile, x, y);
 
-    // get bg color zero for layering
-    bg_color_zero = bw_palette[display.bgp & 3];
-
     // 8x8 tiles
     uint8_t *tile_data = vram + 0x0000;     // always starts at 0x8000, unlike bg/window
     uint8_t *ptr = tile_data + (tile * 16);
 
-    if(is_cgb && (flags & 0x08)) {
-        // bank 1
-        ptr += 8192;
-    }
-
     uint32_t sprite_colors[64];    // 8x8
     uint8_t sprite_data[64];
     int sprite_data_index = 0;
+    int cgb_palette_number;
 
-    /*for(int i = 0; i < 8; i++) {
-        for(int j = 0; j < 8; j++) {
-            data_hi = (ptr[1] >> (7 - j)) & 1;
-            data_hi <<= 1;
+    if(!is_cgb) {
+        // get bg color zero for layering
+        bg_color_zero = bw_palette[display.bgp & 3];
+    } else {
+        cgb_bg_palette(0);
+        bg_color_zero = cgb_palette[0];
 
-            data_lo = (ptr[0] >> (7 - j));
-            data_lo &= 1;
+        // prepare cgb palette
+        cgb_palette_number = flags & 7;
+        cgb_obj_palette(cgb_palette_number);
 
-            data = data_hi | data_lo;
-
-            if(flags & 0x10) color_index = (display.obp1 >> (data * 2)) & 3;    // palette 1
-            else color_index = (display.obp0 >> (data * 2)) & 3;    // palette 0
-
-            color = bw_palette[color_index];
-
-            // sprites may be on top of or under the background
-            if(flags & 0x80) {
-                // sprite is behind bg colors 1-3, on top of bg color 0
-
-                // get bg color
-                bg_color = temp_framebuffer[((i + y) * GB_WIDTH) + (j + x)];
-                if((bg_color == bg_color_zero) && data) temp_framebuffer[((i + y) * GB_WIDTH) + (j + x)] = color;
-            } else {
-                // sprite is on top of bg, normal scenario
-                // sprite color value zero means transparent, so only plot non-zero values
-                if(data) temp_framebuffer[((i + y) * GB_WIDTH) + (j + x)] = color;
-            }
-        }
-
-        ptr += 2;
-    }*/
+        if(flags & 0x08) ptr += 8192;   // bank 1
+    }
 
     sprite_data_index = 0;
     for(int i = 0; i < 8; i++) {
@@ -739,10 +727,15 @@ void plot_small_sprite(int n) {
 
             data = data_hi | data_lo;
 
-            if(flags & 0x10) color_index = (display.obp1 >> (data * 2)) & 3;    // palette 1
-            else color_index = (display.obp0 >> (data * 2)) & 3;    // palette 0
-
-            color = bw_palette[color_index];
+            if(!is_cgb) {
+                // monochrome palettes
+                if(flags & 0x10) color_index = (display.obp1 >> (data * 2)) & 3;    // palette 1
+                else color_index = (display.obp0 >> (data * 2)) & 3;    // palette 0
+                color = bw_palette[color_index];
+            } else {
+                // cgb palettes
+                color = cgb_palette[data];
+            }
 
             sprite_colors[sprite_data_index] = color;
             sprite_data[sprite_data_index] = data;
@@ -917,11 +910,11 @@ void render_line() {
                 oam_data[2] &= 0xFE;    // upper tile
                 plot_small_sprite(i);
                 oam_data[2] |= 0x01;    // lower tile
-                oam_data[1] += 8;       // y - lower tile
+                oam_data[0] += 8;       // y - lower tile
                 plot_small_sprite(i);
 
                 oam_data[2] = tile_store;
-                oam_data[1] -= 8;       // back to what it was
+                oam_data[0] -= 8;       // back to what it was
 
                 oam_data += 4;
             }
