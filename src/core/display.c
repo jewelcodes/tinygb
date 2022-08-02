@@ -605,7 +605,7 @@ void plot_bg_tile(int is_window, int x, int y, uint8_t tile, uint8_t *tile_data,
     for(int i = 0; i < 8; i++) {
         //printf("data for row %d is %02X %02X\n", i, ptr[0], ptr[1]);
 
-        for(int j = 0; j < 8; j++) {
+        for(int j = 7; j >= 0; j--) {
 
             /*int s = 6 - ((j % 3) * 2);
             data = *ptr >> s;
@@ -616,10 +616,10 @@ void plot_bg_tile(int is_window, int x, int y, uint8_t tile, uint8_t *tile_data,
             data &= 2;  // keep only bit 1
             data |= ptr[0] >> (7 - j) & 1;*/
 
-            data_hi = (ptr[1] >> (7 - j)) & 1;
+            data_hi = (ptr[1] >> (j)) & 1;
             data_hi <<= 1;
 
-            data_lo = (ptr[0] >> (7 - j));
+            data_lo = (ptr[0] >> (j));
             data_lo &= 1;
 
             data = data_hi | data_lo;
@@ -719,11 +719,11 @@ void plot_small_sprite(int n) {
 
     sprite_data_index = 0;
     for(int i = 0; i < 8; i++) {
-        for(int j = 0; j < 8; j++) {
-            data_hi = (ptr[1] >> (7 - j)) & 1;
+        for(int j = 7; j >= 0; j--) {
+            data_hi = (ptr[1] >> (j)) & 1;
             data_hi <<= 1;
 
-            data_lo = (ptr[0] >> (7 - j));
+            data_lo = (ptr[0] >> (j));
             data_lo &= 1;
 
             data = data_hi | data_lo;
@@ -784,7 +784,7 @@ void render_line() {
         case 1:         // freeze at current frame
             return;
         case 2:         // freeze black
-            sgb_blank_color = 0x000000;
+            sgb_blank_color = bw_palette[3];
             break;
         case 3:         // freeze color zero
         default:
