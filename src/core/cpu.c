@@ -2588,6 +2588,126 @@ void rlc_hl() {
     count_cycles(4);
 }
 
+void srl_hl() {
+#ifdef DISASM
+    disasm_log("srl (hl)\n");
+#endif
+
+    cpu.af &= ~(FLAG_N | FLAG_H);
+
+    uint8_t r = read_byte(cpu.hl);
+    if(r & 0x01) cpu.af |= FLAG_CY;
+    else cpu.af &= (~FLAG_CY);
+
+    r >>= 1;
+
+    if(!r) cpu.af |= FLAG_ZF;
+    else cpu.af &= (~FLAG_ZF);
+
+    write_byte(cpu.hl, r);
+    cpu.pc += 2;
+    count_cycles(4);
+}
+
+void rr_hl() {
+#ifdef DISASM
+    disasm_log("rr (hl)\n");
+#endif
+
+    cpu.af &= ~(FLAG_N | FLAG_H);
+
+    uint8_t old_cy;
+    if(cpu.af & FLAG_CY) old_cy = 0x80;
+    else old_cy = 0x00;
+
+    uint8_t r = read_byte(cpu.hl);
+    if(r & 0x01) cpu.af |= FLAG_CY;
+    else cpu.af &= (~FLAG_CY);
+
+    r >>= 1;
+    r |= old_cy;
+
+    if(!r) cpu.af |= FLAG_ZF;
+    else cpu.af &= (~FLAG_ZF);
+
+    write_byte(cpu.hl, r);
+    cpu.pc += 2;
+    count_cycles(4);
+}
+
+void rl_hl() {
+#ifdef DISASM
+    disasm_log("rl (hl)\n");
+#endif
+
+    uint8_t r = read_byte(cpu.hl);
+    uint8_t old_cy;
+    if(cpu.af & FLAG_CY) old_cy = 0x01;
+    else old_cy = 0x00;
+
+    if(r & 0x80) cpu.af |= FLAG_CY;
+    else cpu.af &= (~FLAG_CY);
+
+    r <<= 1;
+    r |= old_cy;
+
+    if(!r) cpu.af |= FLAG_ZF;
+    else cpu.af &= (~FLAG_ZF);
+
+    cpu.af &= ~(FLAG_N | FLAG_H);
+
+    write_byte(cpu.hl, r);
+    cpu.pc += 2;
+    count_cycles(4);
+}
+
+void sla_hl() {
+#ifdef DISASM
+    disasm_log("sla (hl)\n");
+#endif
+
+    cpu.af &= ~(FLAG_H | FLAG_N);
+
+    uint8_t r = read_byte(cpu.hl);
+    if(r & 0x80) cpu.af |= FLAG_CY;
+    else cpu.af &= (~FLAG_CY);
+
+    r <<= 1;
+
+    if(!r) cpu.af |= FLAG_ZF;
+    else cpu.af &= (~FLAG_ZF);
+
+    write_byte(cpu.hl, r);
+
+    cpu.pc += 2;
+    count_cycles(4);
+}
+
+void sra_hl() {
+#ifdef DISASM
+    disasm_log("sra (hl)\n");
+#endif
+
+    uint8_t r = read_byte(cpu.hl);
+    uint8_t new_msb;
+    if(r & 0x80) new_msb = 0x80;
+    else new_msb = 0x00;
+
+    if(r & 0x01) cpu.af |= FLAG_CY;
+    else cpu.af &= (~FLAG_CY);
+
+    r >>= 1;
+    r |= new_msb;
+
+    if(!r) cpu.af |= FLAG_ZF;
+    else cpu.af &= (~FLAG_ZF);
+
+    cpu.af &= ~(FLAG_N | FLAG_H);
+    write_byte(cpu.hl, r);
+    cpu.pc += 2;
+    count_cycles(4);
+}
+
 // lookup tables
 void (*opcodes[256])() = {
     nop, ld_r_xxxx, ld_bc_a, inc_r16, inc_r, dec_r, ld_r_xx, rlca,  // 0x00
@@ -2630,12 +2750,12 @@ void (*opcodes[256])() = {
 void (*ex_opcodes[256])() = {
     rlc_r, rlc_r, rlc_r, rlc_r, rlc_r, rlc_r, rlc_hl, rlc_r,     // 0x00
     rrc_r, rrc_r, rrc_r, rrc_r, rrc_r, rrc_r, rrc_hl, rrc_r,     // 0x08
-    rl_r, rl_r, rl_r, rl_r, rl_r, rl_r, NULL, rl_r,     // 0x10
-    rr_r, rr_r, rr_r, rr_r, rr_r, rr_r, NULL, rr_r,     // 0x18
-    sla_r, sla_r, sla_r, sla_r, sla_r, sla_r, NULL, sla_r,     // 0x20
-    sra_r, sra_r, sra_r, sra_r, sra_r, sra_r, NULL, sra_r,     // 0x28
+    rl_r, rl_r, rl_r, rl_r, rl_r, rl_r, rl_hl, rl_r,     // 0x10
+    rr_r, rr_r, rr_r, rr_r, rr_r, rr_r, rr_hl, rr_r,     // 0x18
+    sla_r, sla_r, sla_r, sla_r, sla_r, sla_r, sla_hl, sla_r,     // 0x20
+    sra_r, sra_r, sra_r, sra_r, sra_r, sra_r, sra_hl, sra_r,     // 0x28
     swap_r, swap_r, swap_r, swap_r, swap_r, swap_r, swap_hl, swap_r,     // 0x30
-    srl_r, srl_r, srl_r, srl_r, srl_r, srl_r, NULL, srl_r,     // 0x38
+    srl_r, srl_r, srl_r, srl_r, srl_r, srl_r, srl_hl, srl_r,     // 0x38
 
     bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_hl, bit_n_r,     // 0x40
     bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_r, bit_n_hl, bit_n_r,     // 0x48
