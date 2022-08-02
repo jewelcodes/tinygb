@@ -52,6 +52,8 @@ uint32_t bw_palette[4] = {
     0xFFFFFF, 0xAAAAAA, 0x555555, 0x000000
 };
 
+uint32_t cgb_palette[4];
+
 // dummy debug function
 void cgb_dump_bgpd() {
     uint32_t color32;
@@ -491,15 +493,17 @@ void update_framebuffer() {
     }
 }
 
-inline uint32_t cgb_bg_palette(int palette, int index) {
+void cgb_bg_palette(int palette) {  // dump the palette into cgb_palette[]
     uint16_t color16;
     uint32_t color32;
 
-    color16 = display.bgpd[(palette<<3)+(index<<1)] & 0xFF;
-    color16 |= (display.bgpd[(palette<<3)+(index<<1)+1] & 0xFF) << 8;
+    for(int i = 0; i < 4; i++) {
+        color16 = display.bgpd[(palette<<3)+(i<<1)] & 0xFF;
+        color16 |= (display.bgpd[(palette<<3)+(i<<1)+1] & 0xFF) << 8;
+        color32 = truecolor(color16);
 
-    color32 = truecolor(color16);
-    return color32;
+        cgb_palette[i] = color32;
+    }
 }
 
 void plot_bg_tile(int is_window, int x, int y, uint8_t tile, uint8_t *tile_data, uint8_t cgb_flags) {
@@ -577,6 +581,11 @@ void plot_bg_tile(int is_window, int x, int y, uint8_t tile, uint8_t *tile_data,
         ptr += 8192;
     }
 
+    if(is_cgb) {
+        cgb_palette_number = cgb_flags & 7;
+        cgb_bg_palette(cgb_palette_number);
+    }
+
     // 8x8 tiles
     for(int i = 0; i < 8; i++) {
         //printf("data for row %d is %02X %02X\n", i, ptr[0], ptr[1]);
@@ -606,8 +615,7 @@ void plot_bg_tile(int is_window, int x, int y, uint8_t tile, uint8_t *tile_data,
                 color_index = (display.bgp >> (data * 2)) & 3;
                 color = bw_palette[color_index];
             } else {
-                cgb_palette_number = cgb_flags & 7;
-                color = cgb_bg_palette(cgb_palette_number, data);
+                color = cgb_palette[data];
             }
 
             background_buffer[(yp * 256) + xp] = color;
