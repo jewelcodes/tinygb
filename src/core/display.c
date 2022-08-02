@@ -478,7 +478,18 @@ void update_framebuffer() {
     }
 }
 
-void plot_bg_tile(int is_window, int x, int y, uint8_t tile, uint8_t *tile_data) {
+inline uint32_t cgb_bg_palette(int palette, int index) {
+    uint16_t color16;
+    uint32_t color32;
+
+    color16 = display.bgpd[(palette<<3)+(index<<1)] & 0xFF;
+    color16 |= (display.bgpd[(palette<<3)+(index<<1)+1] & 0xFF) << 8;
+
+    color32 = truecolor(color16);
+    return color32;
+}
+
+void plot_bg_tile(int is_window, int x, int y, uint8_t tile, uint8_t *tile_data, uint8_t cgb_flags) {
     // x and y are in tiles, not pixels
     int xp = x << 3;    // x8
     int yp = y << 3;
@@ -532,6 +543,8 @@ void plot_bg_tile(int is_window, int x, int y, uint8_t tile, uint8_t *tile_data)
 
     write_log("\n");*/
 
+    int cgb_palette_number;
+
     if(display.lcdc & 0x10) ptr = tile_data + (tile * 16);  // normal positive
     else {
         tile_data += 0x800;     // to 0x9000
@@ -546,6 +559,11 @@ void plot_bg_tile(int is_window, int x, int y, uint8_t tile, uint8_t *tile_data)
             // positive
             ptr = tile_data + (tile * 16);
         }
+    }
+
+    if(is_cgb && (cgb_flags & 0x08)) {
+        // tile is in bank 1
+        ptr += 8192;
     }
 
     // 8x8 tiles
@@ -573,9 +591,14 @@ void plot_bg_tile(int is_window, int x, int y, uint8_t tile, uint8_t *tile_data)
 
             //printf("data for x/y %d/%d is %d\n", i, j, data);
 
-            color_index = (display.bgp >> (data * 2)) & 3;
-            //color_index = data;
-            color = bw_palette[color_index];
+            if(!is_cgb) {
+                color_index = (display.bgp >> (data * 2)) & 3;
+                color = bw_palette[color_index];
+            } else {
+                cgb_palette_number = cgb_flags & 7;
+                color = cgb_bg_palette(cgb_palette_number, data);
+            }
+
             background_buffer[(yp * 256) + xp] = color;
 
             /*if(color != 0xFFFFFF) {
@@ -765,13 +788,17 @@ void render_line() {
     // test if background is enabled
     if(display.lcdc & 0x01) {
         uint8_t *bg_map;
+        uint8_t *bg_cgb_flags;
         if(display.lcdc & 0x08) bg_map = vram + 0x1C00;     // 0x9C00-0x9FFF
         else bg_map = vram + 0x1800;     // 0x9800-0x9BFF
 
+        bg_cgb_flags = bg_map + 8192;   // next bank
+
         for(int y = 0; y < 32; y++) {
             for(int x = 0; x < 32; x++) {
-                plot_bg_tile(0, x, y, *bg_map, bg_win_tiles);
+                plot_bg_tile(0, x, y, *bg_map, bg_win_tiles, *bg_cgb_flags);
                 bg_map++;
+                bg_cgb_flags++;
             }
         }
 
@@ -816,14 +843,18 @@ void render_line() {
     if(display.lcdc & 0x20) { // && display.wx >= 7 && display.wx <= 166 && display.wy <= 143) {
         // window enabled
         uint8_t *win_map;
+        uint8_t *win_cgb_flags;
         if(display.lcdc & 0x40) win_map = vram + 0x1C00;    // 0x9C00-0x9FFF
         else win_map = vram + 0x1800;   // 0x9800-0x9BFF
+
+        win_cgb_flags = win_map + 8192;     // next bank
 
         // windows have the same format as backgrounds
         for(int y = 0; y < 32; y++) {
             for(int x = 0; x < 32; x++) {
-                plot_bg_tile(1, x, y, *win_map, bg_win_tiles);
+                plot_bg_tile(1, x, y, *win_map, bg_win_tiles, *win_cgb_flags);
                 win_map++;
+                win_cgb_flags++;
             }
         }
 
