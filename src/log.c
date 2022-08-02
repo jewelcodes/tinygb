@@ -48,7 +48,7 @@ void die(int status, const char *msg, ...) {
 
         cpu_log();
 
-        FILE *memdump = fopen("memory.bin", "w");
+        FILE *memdump = fopen("memory.bin", "wb");
         if(!memdump) {
             write_log("failed to open memory.bin for writing\n");
         } else {
@@ -61,7 +61,7 @@ void die(int status, const char *msg, ...) {
     }
 
     if(vram) {
-        FILE *vramdump = fopen("vram.bin", "w");
+        FILE *vramdump = fopen("vram.bin", "wb");
         if(!vramdump) {
             write_log("failed to open vram.bin for writing\n");
         } else {
