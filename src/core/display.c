@@ -7,7 +7,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define DISPLAY_LOG
+//#define DISPLAY_LOG
 
 /*
 
@@ -493,8 +493,6 @@ void plot_bg_tile(int is_window, int x, int y, uint8_t tile, uint8_t *tile_data,
     // x and y are in tiles, not pixels
     int xp = x << 3;    // x8
     int yp = y << 3;
-
-    int bgy;
 
     if(!is_window) {
         if(display.scy >= 113) {    // 255-143
