@@ -142,7 +142,7 @@ void handle_general_hdma() {
     uint16_t dst = ((display.hdma3 & 0x1F) << 8) | (display.hdma4 & 0xF0);
     dst += 0x8000;
 
-    int count = (display.hdma5 + 1) >> 4;
+    int count = (display.hdma5 + 1) << 4;
 
 #ifdef DISPLAY_LOG
     write_log("[display] handle general HDMA transfer from 0x%04X to 0x%04X, %d bytes\n", src, dst, count);
@@ -332,12 +332,13 @@ void display_write(uint16_t addr, uint8_t byte) {
             } else {
                 // differentiate between general purpose DMA and cancelling H-blank DMA
                 if(display.hdma5 == 0xFF || !(display.hdma5 & 0x80)) {
+                    display.hdma5 = byte;
                     handle_general_hdma();
                 } else {
 #ifdef DISPLAY_LOG
                     write_log("[display] cancelled H-blank DMA transfer\n");
-                    display.hdma5 &= 0x7F;
 #endif
+                    display.hdma5 &= 0x7F;
                 }
             }
 
