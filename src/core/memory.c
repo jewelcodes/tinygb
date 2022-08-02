@@ -60,7 +60,7 @@ void memory_start() {
     cgb_compatibility = (uint8_t *)rom + 0x143;
     if(*cgb_compatibility == 0x80) {
         write_log("game supports both CGB and original GB\n");
-        //is_cgb = 1;
+        is_cgb = 1;
     } else if(*cgb_compatibility == 0xC0) {
         write_log("game only works on CGB\n");
         is_cgb = 1;
