@@ -69,7 +69,8 @@ void memory_start() {
         write_log("game doesn't support CGB\n");
         is_cgb = 0;
     } else {
-        die(-1, "undefined CGB compatibility value 0x%02X\n", *cgb_compatibility);
+        write_log("undefined CGB compatibility value 0x%02X, assuming original GB...\n", *cgb_compatibility);
+        is_cgb = 0;
     }
 
     if(!is_cgb) {
