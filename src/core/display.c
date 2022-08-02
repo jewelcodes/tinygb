@@ -7,7 +7,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-//#define DISPLAY_LOG
+#define DISPLAY_LOG
 
 /*
 
@@ -142,7 +142,7 @@ void handle_general_hdma() {
 
 void handle_hblank_hdma() {
     uint16_t src = (display.hdma1 << 8) | (display.hdma2 & 0xF0);
-    uint16_t dst = ((display.hdma3 & 1) << 8) | (display.hdma4 & 0xF0);
+    uint16_t dst = ((display.hdma3 & 0x1F) << 8) | (display.hdma4 & 0xF0);
     dst += 0x8000; 
 
 #ifdef DISPLAY_LOG
@@ -159,7 +159,7 @@ void handle_hblank_hdma() {
 
     display.hdma1 = (src >> 8) & 0xFF;
     display.hdma2 = src & 0xF0;
-    display.hdma3 = (dst >> 8) & 0x01;
+    display.hdma3 = (dst >> 8) & 0x1F;
     display.hdma4 = dst & 0xF0;
 
     display.hdma5--;
@@ -308,7 +308,7 @@ void display_write(uint16_t addr, uint8_t byte) {
             if(byte & 0x80) {
                 // H-blank DMA
 #ifdef DISPLAY_LOG
-                write_log("[display] H-blank DMA %d bytes from 0x%02X%02X to VRAM 0x%02X%02X\n", ((byte & 0x7F) + 1)*16, display.hdma1, display.hdma2, display.hdma3 + 0x80, display.hdma4);
+                write_log("[display] H-blank DMA %d bytes from 0x%02X%02X to VRAM 0x%02X%02X\n", ((byte & 0x7F) + 1)*16, display.hdma1, display.hdma2, (display.hdma3 & 0x1F) + 0x80, display.hdma4);
 #endif
                 display.hdma5 = byte;   // display_cycle() will handle the rest from here
                 if(!(display.stat & 3)) {   // already in mode 0 (H-blank)
@@ -666,6 +666,12 @@ void plot_small_sprite(int n) {
     // 8x8 tiles
     uint8_t *tile_data = vram + 0x0000;     // always starts at 0x8000, unlike bg/window
     uint8_t *ptr = tile_data + (tile * 16);
+
+    if(is_cgb && (flags & 0x08)) {
+        // bank 1
+        ptr += 8192;
+    }
+
     uint32_t sprite_colors[64];    // 8x8
     uint8_t sprite_data[64];
     int sprite_data_index = 0;
@@ -881,7 +887,24 @@ void render_line() {
     if(display.lcdc & 0x02) {
         // sprites are enabled
         if(display.lcdc & 0x04) {
-            die(-1, "unimplemented 8x16 sprites\n");
+            // 8x16 sprites
+            uint8_t *oam_data = oam;
+            uint8_t tile_store;
+
+            for(int i = 0; i < 40; i++) {
+                tile_store = oam_data[2];
+
+                oam_data[2] &= 0xFE;    // upper tile
+                plot_small_sprite(i);
+                oam_data[2] |= 0x01;    // lower tile
+                oam_data[1] += 8;       // y - lower tile
+                plot_small_sprite(i);
+
+                oam_data[2] = tile_store;
+                oam_data[1] -= 8;       // back to what it was
+
+                oam_data += 4;
+            }
         } else {
             for(int i = 0; i < 40; i++) {   // 40 sprites
                 plot_small_sprite(i);
