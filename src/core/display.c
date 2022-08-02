@@ -257,7 +257,7 @@ void display_write(uint16_t addr, uint8_t byte) {
             byte &= 1;  // only lowest bit matters
             display.vbk = byte;
         } else {
-            write_log("[display] write to VBK register value 0x%02X in non-CGB mode, ignoring...\n", byte);
+            //write_log("[display] write to VBK register value 0x%02X in non-CGB mode, ignoring...\n", byte);
         }
     case HDMA1:
         if(is_cgb) {
@@ -266,7 +266,7 @@ void display_write(uint16_t addr, uint8_t byte) {
 #endif
             display.hdma1 = byte;
         } else {
-            write_log("[display] write to HDMA1 register value 0x%02X in non-CGB mode, ignoring...\n", byte);
+            //write_log("[display] write to HDMA1 register value 0x%02X in non-CGB mode, ignoring...\n", byte);
         }
         return;
     case HDMA2:
@@ -276,7 +276,7 @@ void display_write(uint16_t addr, uint8_t byte) {
 #endif
             display.hdma2 = byte;
         } else {
-            write_log("[display] write to HDMA2 register value 0x%02X in non-CGB mode, ignoring...\n", byte);
+            //write_log("[display] write to HDMA2 register value 0x%02X in non-CGB mode, ignoring...\n", byte);
         }
         return;
     case HDMA3:
@@ -286,7 +286,7 @@ void display_write(uint16_t addr, uint8_t byte) {
 #endif
             display.hdma3 = byte;
         } else {
-            write_log("[display] write to HDMA3 register value 0x%02X in non-CGB mode, ignoring...\n", byte);
+            //write_log("[display] write to HDMA3 register value 0x%02X in non-CGB mode, ignoring...\n", byte);
         }
         return;
     case HDMA4:
@@ -296,7 +296,7 @@ void display_write(uint16_t addr, uint8_t byte) {
 #endif
             display.hdma4 = byte;
         } else {
-            write_log("[display] write to HDMA4 register value 0x%02X in non-CGB mode, ignoring...\n", byte);
+            //write_log("[display] write to HDMA4 register value 0x%02X in non-CGB mode, ignoring...\n", byte);
         }
         return;
     case HDMA5:
@@ -327,26 +327,26 @@ void display_write(uint16_t addr, uint8_t byte) {
             }
 
         } else {
-            write_log("[display] write to HDMA5 register value 0x%02X in non-CGB mode, ignoring...\n", byte);
+            //write_log("[display] write to HDMA5 register value 0x%02X in non-CGB mode, ignoring...\n", byte);
         }
         return;
     case BGPI:
         if(!is_cgb) {
-            write_log("[display] write to BGPI register value 0x%02X in non-CGB mode, ignoring...\n", byte);
+            //write_log("[display] write to BGPI register value 0x%02X in non-CGB mode, ignoring...\n", byte);
         } else {
             display.bgpi = byte;
         }
         return;
     case OBPI:
         if(!is_cgb) {
-            write_log("[display] write to OBPI register value 0x%02X in non-CGB mode, ignoring...\n", byte);
+            //write_log("[display] write to OBPI register value 0x%02X in non-CGB mode, ignoring...\n", byte);
         } else {
             display.obpi = byte;
         }
         return;
     case BGPD:
         if(!is_cgb) {
-            write_log("[display] write to BGPD register value 0x%02X in non-CGB mode, ignoring...\n", byte);
+            //write_log("[display] write to BGPD register value 0x%02X in non-CGB mode, ignoring...\n", byte);
         } else {
             int index = display.bgpi & 0x3F;
             display.bgpd[index] = byte;
@@ -359,7 +359,7 @@ void display_write(uint16_t addr, uint8_t byte) {
         return;
     case OBPD:
         if(!is_cgb) {
-            write_log("[display] write to OBPD register value 0x%02X in non-CGB mode, ignoring...\n", byte);
+            //write_log("[display] write to OBPD register value 0x%02X in non-CGB mode, ignoring...\n", byte);
         } else {
             int index = display.obpi & 0x3F;
             display.obpd[index] = byte;
