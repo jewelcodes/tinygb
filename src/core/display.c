@@ -136,8 +136,21 @@ void display_start() {
 }
 
 void handle_general_hdma() {
-    die(-1, "unimplemented general purpose HDMA\n");
-    return;
+    uint16_t src = (display.hdma1 << 8) | (display.hdma2 & 0xF0);
+    uint16_t dst = ((display.hdma3 & 0x1F) << 8) | (display.hdma4 & 0xF0);
+    dst += 0x8000;
+
+    int count = (display.hdma5 + 1) >> 4;
+
+#ifdef DISPLAY_LOG
+    write_log("[display] handle general HDMA transfer from 0x%04X to 0x%04X, %d bytes\n", src, dst, count);
+#endif
+
+    for(int i = 0; i < count; i++) {
+        write_byte(dst+i, read_byte(src+i));
+    }
+
+    display.hdma5 = 0xFF;
 }
 
 void handle_hblank_hdma() {
@@ -146,7 +159,7 @@ void handle_hblank_hdma() {
     dst += 0x8000; 
 
 #ifdef DISPLAY_LOG
-    write_log("[display] handle H-blank transfer from 0x%04X to 0x%04X at LY=%d\n", src, dst, display.ly);
+    write_log("[display] handle H-blank HDMA transfer from 0x%04X to 0x%04X, 16 bytes at LY=%d\n", src, dst, display.ly);
 #endif
 
     for(int i = 0; i < 16; i++) {
@@ -317,7 +330,7 @@ void display_write(uint16_t addr, uint8_t byte) {
             } else {
                 // differentiate between general purpose DMA and cancelling H-blank DMA
                 if(display.hdma5 == 0xFF || !(display.hdma5 & 0x80)) {
-                    die(-1, "[display] unimplemented general purpose DMA\n");
+                    handle_general_hdma();
                 } else {
 #ifdef DISPLAY_LOG
                     write_log("[display] cancelled H-blank DMA transfer\n");
