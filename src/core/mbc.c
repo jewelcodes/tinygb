@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <time.h>
 
-//#define MBC_LOG
+#define MBC_LOG
 
 // Memory Bank Controller Implementation
 
@@ -26,9 +26,8 @@
   - 0x2000-0x3FFF   BANK1: lower 5 bits of ROM bank select; value zero is read as one (i.e. 0x00 and 0x01 both select the same bank)
   - 0x4000-0x5FFF   BANK2: upper 2 bits of ROM bank select OR RAM bank select according to next register
   - 0x6000-0x7FFF   ROM/RAM banking toggle (0 = ROM, 1 = RAM)
-   - In mode 0, ROM bank (BANK2 << 5) | BANK1 is available at 0x4000-0x7FFF
-   - In mode 1, ROM bank (BANK2 << 5) is available at 0x0000-0x3FFF the bank at
-     0x4000-0x7FFF remains the same.
+   - In mode 0, ROM bank (BANK2 << 5) | BANK1 is available at 0x4000-0x7FFF and RAM bank zero is available at 0xA000-0xBFFF
+   - In mode 1, ROM bank (BANK1) is available at 0x4000-0x7FFF and RAM bank (BANK2) is available at 0xA000-0xBFFF
 
  MBC3: (ROM up to full 2 MiB and RAM up to 32 KiB and real-time clock)
  - Memory regions:
@@ -73,6 +72,9 @@ int ex_ram_size;
 char *ex_ram_filename;
 int ex_ram_modified = 0;
 
+int ex_ram_size_banks;
+int rom_size_banks;
+
 void mbc_start(void *cart_ram) {
     ex_ram_filename = calloc(strlen(rom_filename) + 5, 1);
     if(!ex_ram_filename) {
@@ -106,6 +108,9 @@ void mbc_start(void *cart_ram) {
         write_log("[mbc] undefined RAM size value 0x%02X, assuming 128 KiB RAM\n", rom_bytes[0x149]);
         ex_ram_size = 131072;   // biggest possible value to stay on the safest size
     }
+
+    ex_ram_size_banks = ex_ram_size / 8192;
+    rom_size_banks = rom_size / 16384;
 
     switch(mbc_type) {
     case 1:
@@ -150,6 +155,8 @@ void mbc_start(void *cart_ram) {
 
         fclose(file);
     }
+
+    write_log("[mbc] ROM size in banks is %d\n", rom_size_banks);
 }
 
 void write_ramfile() {
@@ -345,15 +352,27 @@ inline uint8_t mbc1_read(uint16_t addr) {
     uint8_t *rom_bytes = (uint8_t *)rom;
 
     if(addr >= 0x0000 && addr <= 0x3FFF) {
-        if(mbc1.mode) {
+        /*if(mbc1.mode) {
             rom_bank = mbc1.bank2 << 5;
         } else {
             rom_bank = 0;
-        }
+        }*/
+
+        rom_bank = 0;
 
         return rom_bytes[(rom_bank * 16384) + addr];
     } else if(addr >= 0x4000 && addr <= 0x7FFF) {
-        rom_bank = (mbc1.bank2 << 5) | mbc1.bank1;
+        //rom_bank = (mbc1.bank2 << 5) | mbc1.bank1;
+
+        if(mbc1.mode) {
+            rom_bank = mbc1.bank1;
+        } else {
+            rom_bank = (mbc1.bank2 << 5) | mbc1.bank1;
+        }
+
+        rom_bank &= (rom_size_banks-1);
+        if(!rom_bank) rom_bank++;
+
         addr -= 0x4000;
         return rom_bytes[(rom_bank * 16384) + addr];
     } else if(addr >= 0xA000 && addr <= 0xBFFF) {
