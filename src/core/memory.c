@@ -221,6 +221,11 @@ uint8_t read_io(uint16_t addr) {
     return 0xFF;    // unreachable
 }
 
+inline uint8_t read_oam(uint16_t addr) {
+    uint8_t *bytes = (uint8_t *)ram;
+    return bytes[OAM + addr];
+}
+
 uint8_t read_byte(uint16_t addr) {
     uint8_t *rom_bytes = (uint8_t *)rom;
     if(!mbc_type && addr <= 0x7FFF) {
@@ -244,6 +249,8 @@ uint8_t read_byte(uint16_t addr) {
         return ie_read();
     } else if(addr >= 0x8000 && addr <= 0x9FFF) {
         return vram_read(addr);
+    } else if(addr >= 0xFE00 && addr <= 0xFE9F) {
+        return read_oam(addr);
     } else if(addr <= 0x7FFF || (addr >= 0xA000 && addr <= 0xBFFF)) {
         return mbc_read(addr);
     }
