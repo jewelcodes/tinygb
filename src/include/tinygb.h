@@ -145,6 +145,7 @@ uint32_t truecolor(uint16_t);
 // CGB functions
 //#define CGB_DEBUG
 int is_double_speed;
+int prepare_speed_switch;
 void cgb_write(uint16_t, uint8_t);
 uint8_t cgb_read(uint16_t);
 void cgb_dump_bgpd();

@@ -10,6 +10,7 @@
 /* Misc Color Gameboy functions that dont fit anywhere else */
 
 int is_double_speed = 0;
+int prepare_speed_switch = 0;
 
 uint8_t cgb_read(uint16_t addr) {
     switch(addr) {
@@ -26,12 +27,8 @@ uint8_t cgb_read(uint16_t addr) {
 void cgb_write(uint16_t addr, uint8_t byte) {
     switch(addr) {
     case KEY1:
-        if(byte & 0x01) {
-            // switch
-            die(-1, "[cgb] unimplemented double speed mode\n");
-        }
-
-        write_log("[cgb] undefined write to KEY1 register value 0x%02X without attempting a speed switch\n");
+        if(byte & 0x01) prepare_speed_switch = 1;
+        else write_log("[cgb] undefined write to KEY1 register value 0x%02X without attempting a speed switch\n");
         break;
     case RP:
         write_log("[cgb] unimplemented write to RP register value 0x%02X\n", byte);
