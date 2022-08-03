@@ -50,7 +50,7 @@
 #define JOYPAD_DOWN             8
 
 typedef struct {
-    int cpu_cycles_ms, cpu_cycles_vline, cpu_cycles_timer;
+    int cpu_cycles_ms, cpu_cycles_vline, cpu_cycles_timer, cpu_cycles_div;
     int current_cycles;
     int main_cycles;    // how many times we should cycle in main()
     int last_instruction_cycles;

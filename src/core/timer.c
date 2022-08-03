@@ -28,6 +28,8 @@ void set_timer_freq(uint8_t freq) {
     double time_per_tick = 1000.0/(double)current_timer_freq;
     timing.cpu_cycles_timer = (int)((double)timing.cpu_cycles_ms * time_per_tick);
 
+    if(is_double_speed) timing.cpu_cycles_timer >>= 1;
+
     write_log("[timer] set timer frequency to %d Hz\n", current_timer_freq);
     write_log("[timer] cpu cycles per tick = %d\n", timing.cpu_cycles_timer);
 
@@ -46,6 +48,7 @@ void timer_start() {
     write_log("[timer] timer started\n");
 
     set_timer_freq(0);
+    timing.cpu_cycles_div = 256;    // standard speed
 }
 
 uint8_t timer_read(uint16_t addr) {
@@ -127,8 +130,8 @@ void timer_write(uint16_t addr, uint8_t byte) {
 void timer_cycle() {
     div_cycles += timing.last_instruction_cycles;
 
-    if(div_cycles >= 256) {
-        div_cycles -= 256;
+    if(div_cycles >= timing.cpu_cycles_div) {
+        div_cycles -= timing.cpu_cycles_div;
         timer.div++;
     }
 

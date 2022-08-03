@@ -68,7 +68,7 @@ int cycles_per_throttle;
 
 void count_cycles(int n) {
     n++;
-    n <<= 1;    // x4 to machine cycles
+    n <<= 1;
 
     timing.last_instruction_cycles = n;
     total_cycles += n;
@@ -89,9 +89,14 @@ void count_cycles(int n) {
 }
 
 void cpu_log() {
-    write_log(" AF = 0x%04X   BC = 0x%04X   DE = 0x%04X\n", cpu.af, cpu.bc, cpu.de);
-    write_log(" HL = 0x%04X   SP = 0x%04X   PC = 0x%04X\n", cpu.hl, cpu.sp, cpu.pc);
-    write_log(" executed total cycles = %d\n", total_cycles);
+    write_log("[cpu] DUMPING CPU STATE:\n");
+
+    if(is_double_speed) write_log(" [*] CPU is in double speed mode\n");
+    else write_log(" [*] CPU is in standard speed mode\n");
+
+    write_log(" [*] AF = 0x%04X   BC = 0x%04X   DE = 0x%04X\n", cpu.af, cpu.bc, cpu.de);
+    write_log(" [*] HL = 0x%04X   SP = 0x%04X   PC = 0x%04X\n", cpu.hl, cpu.sp, cpu.pc);
+    //write_log(" executed total cycles = %d\n", total_cycles);
     //write_log(" time until next CPU throttle = %lf ms\n", THROTTLE_THRESHOLD - cycles_time);
 }
 
@@ -2185,6 +2190,36 @@ void adc_d8() {
     count_cycles(2);
 }
 
+void stop() {
+#ifdef DISASM
+    disasm_log("stop\n");
+#endif
+
+    // TODO: not sure what this instruction does beyond the CGB speed switch
+    // so for now just crash if not attempting a speed switch
+    if(prepare_speed_switch) {
+        if(is_double_speed) {
+            // return to standard speed
+            is_double_speed = 0;
+            write_log("[cpu] CPU switched to standard speed\n");
+
+            timing.cpu_cycles_div <<= 1;
+            timing.cpu_cycles_timer <<= 1;
+        } else {
+            is_double_speed = 1;
+            write_log("[cpu] CPU switched to double speed\n");
+
+            timing.cpu_cycles_div >>= 1;
+            timing.cpu_cycles_timer >>= 1;
+        }
+
+        count_cycles(2);
+        cpu.pc += 2;
+    } else {
+        die(-1, "unimplemented CPU stop instruction without attempting speed switch\n");
+    }
+}
+
 /*
     EXTENDED OPCODES
     these are all prefixed with 0xCB first
@@ -2712,7 +2747,7 @@ void sra_hl() {
 void (*opcodes[256])() = {
     nop, ld_r_xxxx, ld_bc_a, inc_r16, inc_r, dec_r, ld_r_xx, rlca,  // 0x00
     ld_a16_sp, add_hl_r16, ld_a_bc, dec_r16, inc_r, dec_r, ld_r_xx, rrca,  // 0x08
-    NULL, ld_r_xxxx, ld_de_a, inc_r16, inc_r, dec_r, ld_r_xx, rla,  // 0x10
+    stop, ld_r_xxxx, ld_de_a, inc_r16, inc_r, dec_r, ld_r_xx, rla,  // 0x10
     jr_e, add_hl_r16, ld_a_de, dec_r16, inc_r, dec_r, ld_r_xx, rra,  // 0x18
     jr_nz, ld_r_xxxx, ldi_hl_a, inc_r16, inc_r, dec_r, ld_r_xx, daa,  // 0x20
     jr_z, add_hl_r16, ldi_a_hl, dec_r16, inc_r, dec_r, ld_r_xx, cpl,  // 0x28
