@@ -2195,9 +2195,7 @@ void stop() {
     disasm_log("stop\n");
 #endif
 
-    // TODO: not sure what this instruction does beyond the CGB speed switch
-    // so for now just crash if not attempting a speed switch
-    if(prepare_speed_switch) {
+    if(is_cgb && prepare_speed_switch) {
         if(is_double_speed) {
             // return to standard speed
             is_double_speed = 0;
@@ -2212,12 +2210,10 @@ void stop() {
             timing.cpu_cycles_div >>= 1;
             timing.cpu_cycles_timer >>= 1;
         }
-
-        count_cycles(2);
-        cpu.pc += 2;
-    } else {
-        die(-1, "unimplemented CPU stop instruction without attempting speed switch\n");
     }
+
+    count_cycles(2);
+    cpu.pc++;
 }
 
 /*
