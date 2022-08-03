@@ -57,6 +57,13 @@ void joypad_write(uint16_t addr, uint8_t byte) {
     }
 
     byte = ~byte;
+    byte &= 0x30;
+
+    if(byte == 0x30 || !byte) {
+        selection = 2;
+        return;
+    }
+
     if(byte & 0x20) {
         // button keys
         selection = 0;
