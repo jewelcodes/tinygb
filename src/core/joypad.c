@@ -31,7 +31,7 @@ uint8_t joypad_read(uint16_t addr) {
         val = (~pressed_keys) & 0x0F;
         //write_log("[joypad] buttons return value 0x%02X\n", val);
     } else {
-        val = 0xFF;
+        val = 0x0F;
     }
 
     return val;
