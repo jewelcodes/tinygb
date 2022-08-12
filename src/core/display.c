@@ -45,6 +45,8 @@ int framecount = 0;
 int hdma_active = 0;
 int hdma_type;
 
+static int line_rendered = 0;
+
 int hdma_hblank_next_line;
 int hdma_hblank_cycles = 0;
 
@@ -823,7 +825,7 @@ void render_line() {
         }
 
         // here the background has been drawn, copy the visible part of it
-        //write_log("[display] rendering background, SCY = %d, SCX = %d\n", display.scy, display.scx);
+        //write_log("[display] rendering background, SCY = %d, SCX = %d, LY = %d\n", display.scy, display.scx, display.ly);
         int temp_index = 0;
         unsigned int bg_index = display.scy * 256;
         unsigned int bg_x = display.scx, bg_y = display.scy;
@@ -926,6 +928,8 @@ void render_line() {
         }
     }
 
+    line_rendered = 1;
+
     // done, copy the singular line we were at
     if(using_sgb_palette) {
         return sgb_recolor(dst, src, display.ly, bw_palette);
@@ -969,6 +973,7 @@ void display_cycle() {
             display_cycles -= 456;  // dont lose any cycles
 
             display.ly++;
+            line_rendered = 0;
             if(display.ly >= 154) {
                 // vblank is now over
                 display.stat &= 0xFC;
@@ -1005,7 +1010,7 @@ void display_cycle() {
             display.stat |= 3;
 
             // complete one line
-            if(framecount > frameskip) render_line();
+            if((framecount > frameskip) && !line_rendered) render_line();
         } else if(display_cycles <= 455) {
             // mode 0
             display.stat &= 0xFC;
@@ -1026,6 +1031,7 @@ void display_cycle() {
             display_cycles -= 456;  // dont lose any cycles
 
             display.ly++;
+            line_rendered = 0;
             if(display.ly >= 144) {
                 // begin vblank (mode 1)
                 display.stat &= 0xFC;
