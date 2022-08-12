@@ -396,8 +396,8 @@ void sub_r() {
     if(a > read_reg8(REG_A)) cpu.af |= FLAG_CY;
     else cpu.af &= (~FLAG_CY);
 
-    if((a & 0x0F) < (read_reg8(REG_A) & 0x0F)) cpu.af |= FLAG_H;
-    else cpu.af &= (~FLAG_H);
+    if((a & 0x10) == (read_reg8(REG_A) & 0x10)) cpu.af &= (~FLAG_H);
+    else cpu.af |= FLAG_H; 
 
     write_reg8(REG_A, a);
 
@@ -425,8 +425,8 @@ void dec_r() {
     if(!r) cpu.af |= FLAG_ZF;
     else cpu.af &= (~FLAG_ZF);
 
-    if((r & 0x0F) > (old & 0x0F)) cpu.af |= FLAG_H;
-    else cpu.af &= (~FLAG_H);
+    if((r & 0x10) == (old & 0x10)) cpu.af &= (~FLAG_H);
+    else cpu.af |= FLAG_H; 
 
     write_reg8(reg, r);
 
@@ -1230,8 +1230,8 @@ void dec_hl() {
     if(!n) cpu.af |= FLAG_ZF;
     else cpu.af &= (~FLAG_ZF);
 
-    if((n & 0x0F) > (old & 0x0F)) cpu.af |= FLAG_H;
-    else cpu.af &= (~FLAG_H);
+    if((n & 0x10) == (old & 0x10)) cpu.af &= (~FLAG_H);
+    else cpu.af |= FLAG_H; 
 
     write_byte(cpu.hl, n);
 
@@ -1718,8 +1718,11 @@ void sub_d8() {
     if(a > read_reg8(REG_A)) cpu.af |= FLAG_CY;
     else cpu.af &= (~FLAG_CY);
 
-    if((a & 0x0F) < (read_reg8(REG_A) & 0x0F)) cpu.af |= FLAG_H;
-    else cpu.af &= (~FLAG_H);
+    //if((a & 0x0F) < (read_reg8(REG_A) & 0x0F)) cpu.af |= FLAG_H;
+    //else cpu.af &= (~FLAG_H);
+
+    if((a & 0x10) == (read_reg8(REG_A) & 0x10)) cpu.af &= (~FLAG_H);
+    else cpu.af |= FLAG_H; 
 
     write_reg8(REG_A, a);
 
@@ -1769,8 +1772,8 @@ void sub_hl() {
     if(a > read_reg8(REG_A)) cpu.af |= FLAG_CY;
     else cpu.af &= (~FLAG_CY);
 
-    if((a & 0x0F) < (read_reg8(REG_A) & 0x0F)) cpu.af |= FLAG_H;
-    else cpu.af &= (~FLAG_H);
+    if((a & 0x10) == (read_reg8(REG_A) & 0x10)) cpu.af &= (~FLAG_H);
+    else cpu.af |= FLAG_H; 
 
     write_reg8(REG_A, a);
 
@@ -1796,8 +1799,12 @@ void daa() {
         cpu.af &= (~FLAG_CY);
     }
 
+    //write_log("DAA instruction: A = 0x%02X, correction = %c0x%02X, result = 0x", a, cpu.af & FLAG_N ? '-' : '+', correction);
+
     if(cpu.af & FLAG_N) a -= correction;
     else a += correction;
+
+    //write_log("%02X\n", a);
 
     if(!a) cpu.af |= FLAG_ZF;
     else cpu.af &= (~FLAG_ZF);
