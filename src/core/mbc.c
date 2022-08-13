@@ -336,7 +336,7 @@ inline void mbc1_write(uint16_t addr, uint8_t byte) {
         }
 
         int ram_bank;
-        if(mbc1.mode) ram_bank = mbc1.bank2;
+        if(mbc1.mode) ram_bank = mbc1.bank2 & 3;
         else ram_bank = 0;
 
         ex_ram[(ram_bank * 8192) + (addr - 0xA000)] = byte;
@@ -365,13 +365,21 @@ inline uint8_t mbc1_read(uint16_t addr) {
         //rom_bank = (mbc1.bank2 << 5) | mbc1.bank1;
 
         if(mbc1.mode) {
-            rom_bank = mbc1.bank1;
+            rom_bank = mbc1.bank1 & 0x1F;
         } else {
-            rom_bank = (mbc1.bank2 << 5) | mbc1.bank1;
+            rom_bank = ((mbc1.bank2 << 5) & 3) | (mbc1.bank1 & 0x1F);
         }
 
-        rom_bank &= (rom_size_banks-1);
-        if(!rom_bank) rom_bank++;
+        //rom_bank &= 
+
+        if(rom_bank) {
+            rom_bank &= (rom_size_banks-1);
+        } else {
+            rom_bank++;
+        }
+
+        //rom_bank &= (rom_size_banks-1);
+        //if(!rom_bank) rom_bank++;
 
         addr -= 0x4000;
         return rom_bytes[(rom_bank * 16384) + addr];
@@ -381,7 +389,7 @@ inline uint8_t mbc1_read(uint16_t addr) {
             return 0xFF;
         }
 
-        if(mbc1.mode) ram_bank = mbc1.bank2;
+        if(mbc1.mode) ram_bank = mbc1.bank2 & 3;
         else ram_bank = 0;
 
         return ex_ram[(ram_bank * 8192) + (addr - 0xA000)];
