@@ -102,6 +102,7 @@ int main(int argc, char **argv) {
     struct tm *timeinfo;
     int sec = 500;  // any invalid number
     char new_title[256];
+    int percentage;
 
     while(1) {
         key = 0;
@@ -144,6 +145,10 @@ int main(int argc, char **argv) {
                 case SDLK_RSHIFT:
                     key = JOYPAD_SELECT;
                     break;
+
+                case SDLK_SPACE:
+                    if(is_down) throttle_enabled = 0;
+                    else throttle_enabled = 1;
                 default:
                     key = 0;
                     break;
@@ -168,8 +173,21 @@ int main(int argc, char **argv) {
 
         if(sec != timeinfo->tm_sec) {
             sec = timeinfo->tm_sec;
-            sprintf(new_title, "tinygb (%d fps)", drawn_frames);
+            percentage = (drawn_frames * 10000) / 5973;
+            sprintf(new_title, "tinygb (%d fps - %d%%)", drawn_frames, percentage);
             SDL_SetWindowTitle(window, new_title);
+
+            // adjust cpu throttle according to acceptable fps (98%-102%)
+            if(throttle_enabled) {
+                if(percentage < 98) {
+                    // emulation is too slow
+                    throttle_time--;
+                } else if(percentage > 102) {
+                    // emulation is too fast
+                    throttle_time++;
+                }
+            }
+
             drawn_frames = 0;
         }
     }

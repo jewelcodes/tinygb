@@ -9,7 +9,8 @@
 //#define INT_LOG
 //#define DISASM
 //#define THROTTLE_LOG
-//#define THROTTLE
+
+int throttle_enabled = 1;
 
 #define disasm_log  write_log("[disasm] %16d %04X ", total_cycles, cpu.pc); write_log
 
@@ -26,7 +27,7 @@
 #define REG_HL      2
 #define REG_SP      3
 
-#define THROTTLE_THRESHOLD  20      // ms
+#define THROTTLE_THRESHOLD  15      // ms
 
 const char *registers[] = {
     "b", "c", "d", "e", "h", "l", "UNDEFINED", "a"
@@ -43,6 +44,8 @@ void (*opcodes[256])();
 void (*ex_opcodes[256])();
 int cpu_speed;
 int cycles_per_throttle;
+
+int throttle_time = THROTTLE_THRESHOLD;
 
 /*void count_cycles(int n) {
     n++;    // all cpu cycles are practically always one cycle longer
@@ -75,16 +78,11 @@ void count_cycles(int n) {
     cycles += n;
     timing.current_cycles += n;
 
-    if(cycles >= cycles_per_throttle) {
-#ifdef THROTTLE_LOG
-        write_log("[cpu] accumulated %d cycles, delaying %d ms\n", cycles, (int)cycles_time);
-#endif
-
-#ifdef THROTTLE
-        SDL_Delay(THROTTLE_THRESHOLD);
-#endif
-
-        cycles = 0;
+    if(throttle_enabled && cycles >= cycles_per_throttle) {
+        if(cycles >= cycles_per_throttle) {
+            SDL_Delay(throttle_time);
+            cycles = 0;
+        }
     }
 }
 
@@ -93,6 +91,8 @@ void cpu_log() {
 
     if(is_double_speed) write_log(" [*] CPU is in double speed mode\n");
     else write_log(" [*] CPU is in standard speed mode\n");
+    
+    if(throttle_enabled) write_log(" [*] CPU throttles for %d ms at a time\n", throttle_time);
 
     write_log(" [*] AF = 0x%04X   BC = 0x%04X   DE = 0x%04X\n", cpu.af, cpu.bc, cpu.de);
     write_log(" [*] HL = 0x%04X   SP = 0x%04X   PC = 0x%04X\n", cpu.hl, cpu.sp, cpu.pc);

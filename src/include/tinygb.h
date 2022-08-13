@@ -90,6 +90,7 @@ void timer_start();
 void sound_start();
 
 // cpu
+extern int throttle_enabled, throttle_time;
 void cpu_cycle();
 void cpu_log();
 
