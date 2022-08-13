@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <SDL.h>
+#include <time.h>
 
 long rom_size;
 int scaling = 4;
@@ -97,6 +98,11 @@ int main(int argc, char **argv) {
 
     SDL_Event e;
     int key, is_down;
+    time_t rawtime;
+    struct tm *timeinfo;
+    int sec = 500;  // any invalid number
+    char new_title[256];
+
     while(1) {
         key = 0;
         is_down = 0;
@@ -154,6 +160,17 @@ int main(int argc, char **argv) {
             cpu_cycle();
             display_cycle();
             timer_cycle();
+        }
+
+
+        time(&rawtime);
+        timeinfo = localtime(&rawtime);
+
+        if(sec != timeinfo->tm_sec) {
+            sec = timeinfo->tm_sec;
+            sprintf(new_title, "tinygb (%d fps)", drawn_frames);
+            SDL_SetWindowTitle(window, new_title);
+            drawn_frames = 0;
         }
     }
 

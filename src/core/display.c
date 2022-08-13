@@ -50,6 +50,8 @@ static int line_rendered = 0;
 int hdma_hblank_next_line;
 int hdma_hblank_cycles = 0;
 
+int drawn_frames = 0;
+
 uint32_t bw_palette[4] = {
     //0xFFFFFF, 0xAAAAAA, 0x555555, 0x000000
     0xC4CFA1, 0x8B956D, 0x4D533C, 0x1F1F1F
@@ -494,6 +496,7 @@ void update_framebuffer() {
     if(framecount > frameskip) {
         SDL_UpdateWindowSurface(window);
         framecount = 0;
+        drawn_frames++;
     }
 }
 

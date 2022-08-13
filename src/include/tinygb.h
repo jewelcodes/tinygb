@@ -109,6 +109,7 @@ uint8_t ie_read();
 void send_interrupt(int);
 
 // display
+extern int drawn_frames;
 void display_write(uint16_t, uint8_t);
 uint8_t display_read(uint16_t);
 void display_cycle();
