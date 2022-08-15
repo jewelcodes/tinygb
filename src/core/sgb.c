@@ -68,7 +68,7 @@ void create_sgb_palette(int sgb_palette, int system_palette) {
         g = (sgb_palettes[sgb_palette].colors[i] >> 8) & 0xFF;
         b = sgb_palettes[sgb_palette].colors[i] & 0xFF;
 
-        write_log("[sgb] SGB palette %d color %d = \e[38;2;%d;%d;%dm#%06X\e[0m\n", sgb_palette, i, r, g, b, sgb_palettes[sgb_palette].colors[i]);
+        write_log("[sgb]  SGB palette %d color %d = \e[38;2;%d;%d;%dm#%06X\e[0m\n", sgb_palette, i, r, g, b, sgb_palettes[sgb_palette].colors[i]);
     }
 #endif
 }
@@ -81,7 +81,7 @@ void handle_sgb_command() {
     switch(command) {
     case SGB_MLT_REQ:
 #ifdef SGB_LOG
-        write_log("[sgb] handling command 0x%02X: MLT_REQ\n", command);
+        //write_log("[sgb] handling command 0x%02X: MLT_REQ\n", command);
 #endif
         if(sgb_command.data[0] & 0x01) {
 #ifdef SGB_LOG
@@ -98,7 +98,7 @@ void handle_sgb_command() {
         break;
     case SGB_MASK_EN:
 #ifdef SGB_LOG
-        write_log("[sgb] handling command 0x%02X: MASK_EN\n", command);
+        //write_log("[sgb] handling command 0x%02X: MASK_EN\n", command);
 #endif
 
         sgb_command.data[0] %= 3;
@@ -118,8 +118,8 @@ void handle_sgb_command() {
         break;
     case SGB_PAL_TRN:
 #ifdef SGB_LOG
-        write_log("[sgb] handling command 0x%02X: PAL_TRN\n", command);
-        write_log("[sgb] PAL_TRN: transferring 4 KiB of palette data from VRAM 0x8000-0x8FFF to SNES\n");
+        //write_log("[sgb] handling command 0x%02X: PAL_TRN\n", command);
+        write_log("[sgb] PAL_TRN: transferring 4 KiB of palette data from VRAM 0x8800-0x97FF to SNES\n");
 #endif
 
         for(int i = 0; i < 4096; i++) {
@@ -129,7 +129,7 @@ void handle_sgb_command() {
         break;
     case SGB_PAL_SET:
 #ifdef SGB_LOG
-        write_log("[sgb] handling command 0x%02X: PAL_SET\n", command);
+        //write_log("[sgb] handling command 0x%02X: PAL_SET\n", command);
 #endif
 
         palette_numbers = (uint16_t *)(&sgb_command.data[0]);
@@ -145,7 +145,7 @@ void handle_sgb_command() {
 
     case SGB_ATTR_BLK:
 #ifdef SGB_LOG
-        write_log("[sgb] handling command 0x%02X: ATTR_BLK\n", command);
+        //write_log("[sgb] handling command 0x%02X: ATTR_BLK\n", command);
         write_log("[sgb] ATTR_BLK: setting color attributes with %d datasets\n", sgb_command.data[0]);
 #endif
         sgb_attr_block_count = sgb_command.data[0];
@@ -169,23 +169,23 @@ void handle_sgb_command() {
             sgb_attr_blocks[i].y2 = (ptr[5] + 1) * 8;
 
 #ifdef SGB_LOG
-            write_log("[sgb] ATTR BLK entry %d: flags 0x%02X from X,Y %d,%d to %d,%d\n", i, ptr[0], sgb_attr_blocks[i].x1, sgb_attr_blocks[i].y1, sgb_attr_blocks[i].x2, sgb_attr_blocks[i].y2);
+            write_log("[sgb]  %d: flags 0x%02X from X,Y %d,%d to %d,%d", i, ptr[0], sgb_attr_blocks[i].x1, sgb_attr_blocks[i].y1, sgb_attr_blocks[i].x2, sgb_attr_blocks[i].y2);
             if(ptr[0]) {
-                write_log("[sgb] ");
+                write_log(", ");
                 if(sgb_attr_blocks[i].inside) {
-                    write_log("inside = %d ", sgb_attr_blocks[i].palette_inside);
+                    write_log("in = %d ", sgb_attr_blocks[i].palette_inside);
                 }
 
                 if(sgb_attr_blocks[i].outside) {
-                    write_log("outside = %d ", sgb_attr_blocks[i].palette_outside);
+                    write_log("out = %d ", sgb_attr_blocks[i].palette_outside);
                 }
 
                 if(sgb_attr_blocks[i].surrounding) {
-                    write_log("surrounding = %d ", sgb_attr_blocks[i].palette_surrounding);
+                    write_log("surround = %d ", sgb_attr_blocks[i].palette_surrounding);
                 }
-
-                write_log("\n");
             }
+
+            write_log("\n");
 #endif
 
             ptr += 6;
