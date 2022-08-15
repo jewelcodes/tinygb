@@ -133,7 +133,7 @@ void cpu_start() {
 
     write_log("[cpu] started with speed %lf MHz\n", (double)cpu_speed/1000000);
 
-    cycles_per_throttle = (cpu_speed * THROTTLE_THRESHOLD)/1000;
+    cycles_per_throttle = (cpu_speed * THROTTLE_THRESHOLD)/700;
     write_log("[cpu] throttling every %d cycles\n", cycles_per_throttle);
 
     // determine values that will be used to keep track of timing
