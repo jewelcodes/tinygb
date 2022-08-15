@@ -103,6 +103,7 @@ int main(int argc, char **argv) {
     int sec = 500;  // any invalid number
     char new_title[256];
     int percentage;
+    int throttle_underflow = 0;
 
     while(1) {
         key = 0;
@@ -181,7 +182,16 @@ int main(int argc, char **argv) {
             if(throttle_enabled) {
                 if(percentage < 98) {
                     // emulation is too slow
-                    throttle_time--;
+                    if(!throttle_time) {
+                        // throttle_time--;
+
+                        if(!throttle_underflow) {
+                            throttle_underflow = 1;
+                            write_log("WARNING: CPU throttle interval has underflown, emulation may be too slow\n");
+                        }
+                    } else {
+                        throttle_time--;
+                    }
                 } else if(percentage > 102) {
                     // emulation is too fast
                     throttle_time++;
