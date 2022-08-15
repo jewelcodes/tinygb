@@ -117,6 +117,10 @@ void cpu_start() {
 
     if(is_cgb) cpu.af = 0x11B0;     // A = 0x11
 
+    // the reason to go for SGB2 and not SGB is because all the timings on the
+    // SGB are 2.4% faster, but this issue was fixed in the SGB2
+    if(is_sgb) cpu.af = 0xFFB0;     // A = 0xFF - emulate the SGB2 not SGB
+
     io_if = 0;
     io_ie = 0;
 
