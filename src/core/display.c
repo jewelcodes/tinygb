@@ -228,7 +228,7 @@ void display_write(uint16_t addr, uint8_t byte) {
         return;
     case LYC:
 #ifdef DISPLAY_LOG
-        write_log("[display] write to LY register value 0x%02X\n", byte);
+        write_log("[display] write to LYC register value 0x%02X\n", byte);
 #endif
         display.lyc = byte;
         return;
@@ -983,7 +983,7 @@ void display_cycle() {
                 display.stat |= 2;      // enter mode 2
                 display.ly = 0;
 
-                if(display.stat & 0x40) {
+                if(display.stat & 0x20) {
                     send_interrupt(1);
                 }
             }
@@ -991,6 +991,10 @@ void display_cycle() {
             if(display.ly == display.lyc) {
                 // TODO: send STAT interrupt
                 display.stat |= 0x04;   // coincidence flag
+                if(display.stat & 0x40) {
+                    //write_log("[display] sending STAT interrupt at LY=LYC=%d\n", display.ly);
+                    send_interrupt(1);
+                }
             } else {
                 display.stat &= 0xFB;
             }
@@ -1002,7 +1006,7 @@ void display_cycle() {
             display.stat &= 0xFC;
             display.stat |= 2;
 
-            if(mode != 2 && display.stat & 0x40) {
+            if(mode != 2 && display.stat & 0x20) {
                 // just entered mode 2
                 //write_log("entered mode 2 on line %d\n", display.ly);
                 send_interrupt(1);
@@ -1055,7 +1059,7 @@ void display_cycle() {
                 display.stat &= 0xFC;
                 display.stat |= 2;
 
-                if(mode != 2 && display.stat & 0x40) {
+                if(mode != 2 && display.stat & 0x20) {
                     // just entered mode 2
                     //write_log("entered mode 2 on line %d\n", display.ly);
                     send_interrupt(1);
@@ -1065,6 +1069,10 @@ void display_cycle() {
             if(display.ly == display.lyc) {
                 // TODO: send STAT interrupt
                 display.stat |= 0x04;   // coincidence flag
+                if(display.stat & 0x40) {
+                    //write_log("[display] sending STAT interrupt at LY=LYC=%d\n", display.ly);
+                    send_interrupt(1);
+                }
             } else {
                 display.stat &= 0xFB;
             }
