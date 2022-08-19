@@ -2205,6 +2205,8 @@ void stop() {
 #endif
 
     if(is_cgb && prepare_speed_switch) {
+        prepare_speed_switch = 0;
+        
         if(is_double_speed) {
             // return to standard speed
             is_double_speed = 0;
