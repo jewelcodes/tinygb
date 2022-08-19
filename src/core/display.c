@@ -531,38 +531,48 @@ void plot_bg_tile(int is_window, int x, int y, uint8_t tile, uint8_t *tile_data,
     int xp = x << 3;    // x8
     int yp = y << 3;
 
-    if(!is_window) {
-        if(display.scy >= 113) {    // 255-143
-            // an wraparound will inevitably occur
-            int bg_line = display.scy + display.ly;
-            int last_bg_line = GB_HEIGHT - (256-display.scy);
-            last_bg_line -= 8;
+    int visible_row;    // only draw one row, save 8x performance
 
-            int wrapped_ly;
+    if(!is_window) {
+        if(display.scy >= 113) {    // 255 minus 143
+            // a wraparound will inevitably occur
+            int bg_line = display.scy + display.ly;
 
             if(bg_line >= 256) {
                 // wrap occured
                 bg_line -= 256;
 
-                wrapped_ly = display.ly - (256 - display.scy);
-                if(!((wrapped_ly) >= yp && (wrapped_ly) <= (yp+8))) {
+                int wrapped_ly = display.ly - (256 - display.scy);
+                if(!((wrapped_ly) >= yp && (wrapped_ly) <= (yp+7))) {
                     return;
                 }
+
+                visible_row = wrapped_ly - yp;
             } else {
                 // no wrap
-                if(!((display.ly+display.scy) >= yp && (display.ly+display.scy) <= (yp+8))) {
+                if(!((display.ly+display.scy) >= yp && (display.ly+display.scy) <= (yp+7))) {
                     return;   // save a fuckton of performance
                 }
+
+                visible_row = (display.ly+display.scy) - yp;
             }
         } else {
-            if(!((display.ly+display.scy) >= yp && (display.ly+display.scy) <= (yp+8))) {
+            if(!((display.ly+display.scy) >= yp && (display.ly+display.scy) <= (yp+7))) {
                 return;   // save a fuckton of performance
             }
+
+            visible_row = (display.ly+display.scy) - yp;
         }
     } else {
         if(xp >= GB_WIDTH || yp >= GB_HEIGHT) return;
-        if(!(display.ly >= (yp+display.wy) && display.ly <= (yp+display.wy+8))) return;
+        if(!(display.ly >= (yp+display.wy) && display.ly <= (yp+display.wy+7))) return;
+
+        visible_row = display.ly - (yp+display.wy);
     }
+
+    //if(!is_window) {
+        //write_log("tile xp %d yp %d LY %d visible row %d\n", xp, yp, display.ly, visible_row);
+    //}
 
     uint32_t color;
     uint8_t data, color_index;
@@ -610,41 +620,43 @@ void plot_bg_tile(int is_window, int x, int y, uint8_t tile, uint8_t *tile_data,
     for(int i = 0; i < 8; i++) {
         //printf("data for row %d is %02X %02X\n", i, ptr[0], ptr[1]);
 
-        for(int j = 7; j >= 0; j--) {
+        if(i == visible_row) {
+            for(int j = 7; j >= 0; j--) {
 
-            /*int s = 6 - ((j % 3) * 2);
-            data = *ptr >> s;
-            data &= 3;*/
+                /*int s = 6 - ((j % 3) * 2);
+                data = *ptr >> s;
+                data &= 3;*/
 
-            /*data = (ptr[1] >> (7 - j));
-            data <<= 1;
-            data &= 2;  // keep only bit 1
-            data |= ptr[0] >> (7 - j) & 1;*/
+                /*data = (ptr[1] >> (7 - j));
+                data <<= 1;
+                data &= 2;  // keep only bit 1
+                data |= ptr[0] >> (7 - j) & 1;*/
 
-            data_hi = (ptr[1] >> (j)) & 1;
-            data_hi <<= 1;
+                data_hi = (ptr[1] >> (j)) & 1;
+                data_hi <<= 1;
 
-            data_lo = (ptr[0] >> (j));
-            data_lo &= 1;
+                data_lo = (ptr[0] >> (j));
+                data_lo &= 1;
 
-            data = data_hi | data_lo;
+                data = data_hi | data_lo;
 
-            //printf("data for x/y %d/%d is %d\n", i, j, data);
+                //printf("data for x/y %d/%d is %d\n", i, j, data);
 
-            if(!is_cgb) {
-                color_index = (display.bgp >> (data * 2)) & 3;
-                color = bw_palette[color_index];
-            } else {
-                color = cgb_palette[data];
+                if(!is_cgb) {
+                    color_index = (display.bgp >> (data * 2)) & 3;
+                    color = bw_palette[color_index];
+                } else {
+                    color = cgb_palette[data];
+                }
+
+                background_buffer[(yp * 256) + xp] = color;
+
+                /*if(color != 0xFFFFFF) {
+                    printf("h");
+                }*/
+
+                xp++;
             }
-
-            background_buffer[(yp * 256) + xp] = color;
-
-            /*if(color != 0xFFFFFF) {
-                printf("h");
-            }*/
-
-            xp++;
         }
 
         yp++;
