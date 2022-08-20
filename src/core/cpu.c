@@ -144,7 +144,7 @@ void cpu_start() {
     timing.cpu_cycles_vline = (int)((double)timing.cpu_cycles_ms * REFRESH_TIME_LINE);
 
     write_log("[cpu] cycles per ms = %d\n", timing.cpu_cycles_ms);
-    timing.main_cycles = 70224;// * 2; // * (frameskip+1);
+    timing.main_cycles = 70224/3;// * 2; // * (frameskip+1);
     write_log("[cpu] main loop runs %d times before checking for events\n", timing.main_cycles);
     //write_log("[cpu] cycles per v-line refresh = %d\n", timing.cpu_cycles_vline);
 }
