@@ -143,6 +143,8 @@ void send_interrupt(int);
 // display
 extern int drawn_frames, framecount;
 void scale_xline(uint32_t *, uint32_t *, int);
+void hflip_tile(uint32_t *, int, int);
+void vflip_tile(uint32_t *, int, int);
 void display_write(uint16_t, uint8_t);
 uint8_t display_read(uint16_t);
 void display_cycle();

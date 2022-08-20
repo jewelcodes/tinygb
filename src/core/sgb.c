@@ -174,6 +174,12 @@ void plot_sgb_tile(int x, int y, uint8_t tile, int palette, int xflip, int yflip
         xp = x << 3;
         ptr += 2;
     }
+
+    if(xflip) {
+        xp = x << 3;
+        yp = y << 3;
+        hflip_tile(sgb_border, xp, yp);
+    }
 }
 
 void render_sgb_border() {
@@ -184,7 +190,6 @@ void render_sgb_border() {
     create_sgb_border_palettes();
 
     uint8_t *map = sgb_border_map;
-    uint16_t map_entry;
 
     uint8_t tile, palette, xflip, yflip;
 
@@ -194,14 +199,14 @@ void render_sgb_border() {
             //write_log("map entry %d,%d is 0x%04X\n", j, i, (uint16_t)(map[0] | (map[1] << 8)));
 
             tile = map[0];
-
             palette = (map[1] >> 2) & 3;
+            if(map[1] & 0x40) xflip = 1;
+            else xflip = 0;
+
+            if(map[1] & 0x80) yflip = 1;
+            else yflip = 0;
 
             map += 2;
-
-            //if(palette >= 4) palette -= 4;
-            //if(map_entry & 0x4000) xflip = 1;
-            //if(map_entry & 0x8000) yflip = 1;
 
             plot_sgb_tile(j, i, tile, palette, xflip, yflip);
         }

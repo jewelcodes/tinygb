@@ -528,6 +528,26 @@ void cgb_obj_palette(int palette) {  // dump the palette into cgb_palette[]
     }
 }
 
+void hflip_tile(uint32_t *buffer, int x, int y) {
+    // flips an 8x8 tile within a 256x256 buffer
+    // to be used in backgrounds, windows, and SGB borders
+    write_log("flipping tile at x,y %d,%d\n", x, y);
+
+    uint32_t temp_color;
+
+    uint32_t *ptr = (uint32_t *)((void *)buffer + (y * 256*4) + (x * 4));
+
+    for(int i = 0; i < 8; i++) {
+        for(int j = 0; j < 4; j++) {
+            temp_color = ptr[7-j];
+            ptr[7-j] = ptr[j];
+            ptr[j] = temp_color;
+        }
+
+        ptr += 256;
+    }
+}
+
 void plot_bg_tile(int is_window, int x, int y, uint8_t tile, uint8_t *tile_data, uint8_t cgb_flags) {
     // x and y are in tiles, not pixels
     int xp = x << 3;    // x8
