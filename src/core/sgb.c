@@ -16,15 +16,16 @@ int sgb_interfere = 0;      // interfering with reads from 0xFF00
 int sgb_current_bit = 0;
 int sgb_command_size;
 int using_sgb_palette = 0;
+
 sgb_command_t sgb_command;
 sgb_palette_t sgb_palettes[4];
 sgb_attr_block_t sgb_attr_blocks[18];   // maximum
 
 int sgb_attr_block_count = 0;
-
 int sgb_screen_mask = 0;
 
 uint8_t sgb_current_joypad = 0x0F;      // 0x0C-0x0F
+int sgb_joypad_count;
 uint8_t sgb_joypad_return;
 
 uint8_t *sgb_palette_data;
@@ -51,6 +52,54 @@ inline uint32_t truecolor(uint16_t color16) {
 
     color32 = (r << 16) | (g << 8) | b;
     return color32;
+}
+
+void sgb_vram_transfer(uint8_t *dst) {
+    // transfers data from VRAM into SNES memory
+    uint8_t lcdc = read_byte(LCDC);     // display control IO port
+    if(!(lcdc & LCDC_ENABLE)) {
+        write_log("[sgb] warning: attempting to transfer data from VRAM when display is disabled, returning zeroes\n");
+        memset(dst, 0, 4096);
+        return;
+    }
+
+    uint16_t tiles, map;
+
+    if(lcdc & 0x10) tiles = 0x8000;
+    else tiles = 0x8800;
+
+    if(lcdc & 0x08) map = 0x9C00;
+    else map = 0x9800;
+
+    uint8_t tile;
+    uint16_t data_ptr;
+
+    //int n = 0;
+
+    for(int i = 0; i < 256; i++) {
+        tile = read_byte(map+i);
+        if(lcdc & 0x10) {
+            data_ptr = tiles + (tile * 16);     // unsigned indexing
+        } else {
+            data_ptr = tiles + 0x800;       // to 0x9000, where tile zero is
+
+            if(tile & 0x80) {
+                // negative
+                tile = ~tile;
+                tile++;
+
+                data_ptr -= (tile * 16);
+            } else {
+                // positive
+                data_ptr += (tile * 16);
+            }
+        }
+
+        // copy 16 bytes
+        for(int j = 0; j < 16; j++) {
+            dst[(i*16)+j] = read_byte(data_ptr+j);
+        }
+    }
 }
 
 void create_sgb_palette(int sgb_palette, int system_palette) {
@@ -84,8 +133,15 @@ void handle_sgb_command() {
         //write_log("[sgb] handling command 0x%02X: MLT_REQ\n", command);
 #endif
         if(sgb_command.data[0] & 0x01) {
+            if(sgb_command.data[0] & 0x02) {
+                // four players
+                sgb_joypad_count = 4;
+            } else {
+                sgb_joypad_count = 2;
+            }
+
 #ifdef SGB_LOG
-            write_log("[sgb] MLT_REQ: enabled multiplayer joypads\n");
+            write_log("[sgb] MLT_REQ: enabled %d multiplayer joypads\n", sgb_joypad_count);
 #endif
             sgb_current_joypad = 0x0F;
             sgb_interfere = 1;
@@ -93,6 +149,7 @@ void handle_sgb_command() {
 #ifdef SGB_LOG
             write_log("[sgb] MLT_REQ: disabled multiplayer joypads\n");
 #endif
+            sgb_joypad_count = 1;
             sgb_interfere = 0;
         }
         break;
@@ -119,13 +176,10 @@ void handle_sgb_command() {
     case SGB_PAL_TRN:
 #ifdef SGB_LOG
         //write_log("[sgb] handling command 0x%02X: PAL_TRN\n", command);
-        write_log("[sgb] PAL_TRN: transferring 4 KiB of palette data from VRAM 0x8800-0x97FF to SNES\n");
+        write_log("[sgb] PAL_TRN: transferring 4 KiB of palette data from VRAM to SNES\n");
 #endif
 
-        for(int i = 0; i < 4096; i++) {
-            sgb_palette_data[i] = read_byte(0x8800+i);
-            //if(sgb_palette_data[i]) printf("%d: 0x%02X\n", i, sgb_palette_data[i]);
-        }
+        sgb_vram_transfer(sgb_palette_data);
         break;
     case SGB_PAL_SET:
 #ifdef SGB_LOG
@@ -194,7 +248,7 @@ void handle_sgb_command() {
         using_sgb_palette = 1;
         break;
     default:
-        write_log("[sgb] unhandled command 0x%02X, ignoring...\n", command);
+        write_log("[sgb] unimplemented command 0x%02X, ignoring...\n", command);
         return;
     }
 }
@@ -223,6 +277,9 @@ void sgb_write(uint8_t byte) {
         if(p14 && p15) {
             // both ones, return current joypad
             sgb_joypad_return = sgb_current_joypad;
+
+            write_log("[sgb] current joypad is 0x%02X\n", sgb_joypad_return);
+
             sgb_current_joypad--;
             if(sgb_current_joypad < 0x0C) sgb_current_joypad = 0x0F;    // wrap
         } else if(!p14 && p15) {
