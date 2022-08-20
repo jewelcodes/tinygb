@@ -10,6 +10,9 @@
 #define GB_WIDTH    160
 #define GB_HEIGHT   144
 
+#define SGB_WIDTH   256
+#define SGB_HEIGHT  224
+
 #define GB_CPU_SPEED        4194304 // Hz
 #define CGB_CPU_SPEED       8388608
 
@@ -143,7 +146,7 @@ uint8_t joypad_read(uint16_t);
 void joypad_handle(int, int);
 
 // SGB functions
-int sgb_transferring, sgb_interfere, sgb_screen_mask, using_sgb_palette;
+int sgb_transferring, sgb_interfere, sgb_screen_mask, using_sgb_palette, using_sgb_border;
 void sgb_start();
 void sgb_write(uint8_t);
 uint8_t sgb_read();

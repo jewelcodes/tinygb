@@ -16,6 +16,7 @@ int sgb_interfere = 0;      // interfering with reads from 0xFF00
 int sgb_current_bit = 0;
 int sgb_command_size;
 int using_sgb_palette = 0;
+int using_sgb_border = 0;
 
 sgb_command_t sgb_command;
 sgb_palette_t sgb_palettes[4];
@@ -29,10 +30,14 @@ int sgb_joypad_count;
 uint8_t sgb_joypad_return;
 
 uint8_t *sgb_palette_data;
+uint8_t *sgb_tiles;
+uint8_t *sgb_border_map;
 
 void sgb_start() {
     sgb_palette_data = calloc(1, 4096);
-    if(!sgb_palette_data) {
+    sgb_tiles = calloc(1, 8192);
+    sgb_border_map = calloc(1, 4096);
+    if(!sgb_palette_data || !sgb_tiles || !sgb_border_map) {
         write_log("[sgb] unable to allocate memory\n");
         die(-1, "");
     }
@@ -70,6 +75,10 @@ void sgb_vram_transfer(uint8_t *dst) {
 
     if(lcdc & 0x08) map = 0x9C00;
     else map = 0x9800;
+
+#ifdef SGB_LOG
+    write_log("[sgb]  VRAM transfer: using map at 0x%04X with tiles at 0x%04X\n", map, tiles);
+#endif
 
     uint8_t tile;
     uint16_t data_ptr;
@@ -233,6 +242,18 @@ void sgb_attr_blk() {
     using_sgb_palette = 1;
 }
 
+void sgb_chr_trn() {
+#ifdef SGB_LOG
+    write_log("[sgb] CHR_TRN: transferring data for tiles %s from VRAM to SNES\n", (sgb_command.data[0] & 1) ? "0x80-0xFF" : "0x00-0x7F");
+#endif
+
+    if(sgb_command.data[0] & 1) {
+        sgb_vram_transfer(sgb_tiles+4096);
+    } else {
+        sgb_vram_transfer(sgb_tiles);
+    }
+}
+
 void handle_sgb_command() {
     uint8_t command;
     command = sgb_command.command_length >> 3;
@@ -248,6 +269,8 @@ void handle_sgb_command() {
         return sgb_pal_set();
     case SGB_ATTR_BLK:
         return sgb_attr_blk();
+    case SGB_CHR_TRN:
+        return sgb_chr_trn();
     default:
         write_log("[sgb] unimplemented command 0x%02X, ignoring...\n", command);
         return;
