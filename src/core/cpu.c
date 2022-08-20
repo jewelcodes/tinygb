@@ -79,7 +79,7 @@ void count_cycles(int n) {
     timing.current_cycles += n;
 
     if(throttle_enabled && cycles >= cycles_per_throttle) {
-        if(throttle_time) SDL_Delay(throttle_time);
+        if(throttle_time) delay(throttle_time);
         cycles = 0;
     }
 }

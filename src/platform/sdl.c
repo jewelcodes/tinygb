@@ -19,6 +19,10 @@ SDL_Surface *surface;
 timing_t timing;
 char *rom_filename;
 
+inline void delay(int ms) {
+    SDL_Delay(ms);
+}
+
 void destroy_window() {
     SDL_DestroyWindow(window);
     SDL_Quit();

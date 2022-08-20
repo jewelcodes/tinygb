@@ -5,7 +5,7 @@
 #pragma once
 
 #include <stdint.h>
-#include <SDL.h>
+//#include <SDL.h>
 
 #define GB_WIDTH    160
 #define GB_HEIGHT   144
@@ -84,6 +84,7 @@ extern int mbc_type;
 
 void update_window(uint32_t *);
 void destroy_window();
+void delay(int);
 
 void open_log();
 void write_log(const char *, ...);
