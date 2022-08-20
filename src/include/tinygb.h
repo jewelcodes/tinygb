@@ -88,6 +88,7 @@ extern int mbc_type;
 void update_window(uint32_t *);
 void destroy_window();
 void delay(int);
+void resize_sgb_window();
 
 void open_log();
 void write_log(const char *, ...);
@@ -147,6 +148,7 @@ void joypad_handle(int, int);
 
 // SGB functions
 int sgb_transferring, sgb_interfere, sgb_screen_mask, using_sgb_palette, using_sgb_border;
+int gb_x, gb_y;
 void sgb_start();
 void sgb_write(uint8_t);
 uint8_t sgb_read();

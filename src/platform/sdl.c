@@ -29,11 +29,18 @@ void destroy_window() {
 }
 
 void update_window(uint32_t *framebuffer) {
+    void *src, *dst;
+
     if(surface->format->BytesPerPixel == 4) {
         // 32-bpp
         for(int i = 0; i < scaled_h; i++) {
-            void *src = (void *)(framebuffer + (i * scaled_w));
-            void *dst = (void *)(surface->pixels + (i * surface->pitch));
+            src = (void *)(framebuffer + (i * scaled_w));
+
+            if(!using_sgb_border) {
+                dst = (void *)(surface->pixels + (i * surface->pitch));
+            } else {
+                dst = (void *)(surface->pixels + ((i + gb_y) * surface->pitch) + (gb_x * 4));
+            }
             memcpy(dst, src, scaled_w*4);
         }
     } else {
@@ -46,6 +53,11 @@ void update_window(uint32_t *framebuffer) {
         framecount = 0;
         drawn_frames++;
     }
+}
+
+void resize_sgb_window() {
+    SDL_SetWindowSize(window, SGB_WIDTH*scaling, SGB_HEIGHT*scaling);
+    surface = SDL_GetWindowSurface(window);
 }
 
 int main(int argc, char **argv) {

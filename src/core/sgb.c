@@ -17,6 +17,7 @@ int sgb_current_bit = 0;
 int sgb_command_size;
 int using_sgb_palette = 0;
 int using_sgb_border = 0;
+int gb_x, gb_y;
 
 sgb_command_t sgb_command;
 sgb_palette_t sgb_palettes[4];
@@ -173,7 +174,7 @@ void sgb_mask_en() {
 
 void sgb_pal_trn() {
 #ifdef SGB_LOG
-    write_log("[sgb] PAL_TRN: transferring 4 KiB of palette data from VRAM to SNES\n");
+    write_log("[sgb] PAL_TRN: transferring palette data from VRAM to SNES\n");
 #endif
 
     sgb_vram_transfer(sgb_palette_data);
@@ -254,6 +255,25 @@ void sgb_chr_trn() {
     }
 }
 
+void sgb_pct_trn() {
+#ifdef SGB_LOG
+    write_log("[sgb] PCT_TRN: transferring data for SGB border from VRAM to SNES\n");
+#endif
+
+    sgb_vram_transfer(sgb_border_map);
+
+    if(!using_sgb_border) {
+        resize_sgb_window();
+    }
+
+    using_sgb_border = 1;
+    gb_x = (SGB_WIDTH / 2) - (GB_WIDTH / 2);
+    gb_y = (SGB_HEIGHT / 2) - (GB_HEIGHT / 2);
+    gb_x *= scaling;
+    gb_y *= scaling;
+    //render_sgb_border();
+}
+
 void handle_sgb_command() {
     uint8_t command;
     command = sgb_command.command_length >> 3;
@@ -271,6 +291,8 @@ void handle_sgb_command() {
         return sgb_attr_blk();
     case SGB_CHR_TRN:
         return sgb_chr_trn();
+    case SGB_PCT_TRN:
+        return sgb_pct_trn();
     default:
         write_log("[sgb] unimplemented command 0x%02X, ignoring...\n", command);
         return;
