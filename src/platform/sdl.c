@@ -8,6 +8,8 @@
 #include <SDL.h>
 #include <time.h>
 
+// SDL specific code
+
 long rom_size;
 int scaling = 4;
 int frameskip = 0;  // no skip
@@ -16,6 +18,31 @@ SDL_Window *window;
 SDL_Surface *surface;
 timing_t timing;
 char *rom_filename;
+
+void destroy_window() {
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+}
+
+void update_window(uint32_t *framebuffer) {
+    if(surface->format->BytesPerPixel == 4) {
+        // 32-bpp
+        for(int i = 0; i < scaled_h; i++) {
+            void *src = (void *)(framebuffer + (i * scaled_w));
+            void *dst = (void *)(surface->pixels + (i * surface->pitch));
+            memcpy(dst, src, scaled_w*4);
+        }
+    } else {
+        die(-1, "unimplemented non 32-bpp surfaces\n");
+    }
+
+    //framecount++;
+    if(framecount > frameskip) {
+        SDL_UpdateWindowSurface(window);
+        framecount = 0;
+        drawn_frames++;
+    }
+}
 
 int main(int argc, char **argv) {
     if(argc != 2) {

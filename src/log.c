@@ -35,8 +35,7 @@ void open_log() {
 }
 
 void die(int status, const char *msg, ...) {
-    SDL_DestroyWindow(window);
-    SDL_Quit();
+    destroy_window();
 
     if(ram) {
 #ifdef CGB_DEBUG

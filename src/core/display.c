@@ -479,7 +479,7 @@ void update_framebuffer() {
     }
 
     // write it to the screen
-    if(surface->format->BytesPerPixel == 4) {
+    /*if(surface->format->BytesPerPixel == 4) {
         // 32-bpp
         for(int i = 0; i < scaled_h; i++) {
             //void *src = (void *)(scaled_framebuffer + (i * GB_WIDTH * 4));
@@ -497,7 +497,9 @@ void update_framebuffer() {
         SDL_UpdateWindowSurface(window);
         framecount = 0;
         drawn_frames++;
-    }
+    }*/
+
+    update_window(scaled_framebuffer);
 }
 
 void cgb_bg_palette(int palette) {  // dump the palette into cgb_palette[]

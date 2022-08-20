@@ -74,11 +74,16 @@ extern char *rom_filename;
 extern int cpu_speed;
 
 extern int scaling, frameskip;
+extern int scaled_w, scaled_h;
 
-extern SDL_Window *window;
-extern SDL_Surface *surface;
+//extern SDL_Window *window;
+//extern SDL_Surface *surface;
+
 extern timing_t timing;
 extern int mbc_type;
+
+void update_window(uint32_t *);
+void destroy_window();
 
 void open_log();
 void write_log(const char *, ...);
@@ -110,7 +115,7 @@ uint8_t ie_read();
 void send_interrupt(int);
 
 // display
-extern int drawn_frames;
+extern int drawn_frames, framecount;
 void display_write(uint16_t, uint8_t);
 uint8_t display_read(uint16_t);
 void display_cycle();
