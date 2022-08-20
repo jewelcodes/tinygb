@@ -23,7 +23,7 @@ config_file_t config_file;
 
 static FILE *file;
 
-static char temp[100];
+static char nullstr[2];
 static char line[200];
 
 static void load_defaults() {
@@ -68,7 +68,7 @@ char *get_property(char *property) {
 
             if(line[i] == '\n' || line[i] == '\r') {
                 // property has no value
-                return NULL;
+                return nullstr;
             }
 
             while(line[i] == ' ' || line[i] == '=') i++;
@@ -77,7 +77,7 @@ char *get_property(char *property) {
             value = calloc(strlen(line+i)+1, 1);
             if(!value) {
                 write_log("[config] unable to allocate memory for property '%s', assuming defaults\n", property);
-                return NULL;
+                return nullstr;
             }
 
             int j = 0;
@@ -92,10 +92,11 @@ char *get_property(char *property) {
     }
 
     write_log("[config] property '%s' doesn't exist, assuming default\n", property);
-    return NULL;
+    return nullstr;
 }
 
 void open_config() {
+    nullstr[0] = 0;
     file = fopen("tinygb.ini", "r");
     if(!file) {
         write_log("[config] unable to open tinygb.ini for reading, loading default settings\n");
@@ -115,4 +116,18 @@ void open_config() {
     config_file.system = get_property("system");
     config_file.preference = get_property("preference");
     config_file.border = get_property("border");
+
+    if(!strcmp(config_file.system, "auto")) config_system = SYSTEM_AUTO;
+    else if(!strcmp(config_file.system, "gb")) config_system = SYSTEM_GB;
+    else if(!strcmp(config_file.system, "sgb2")) config_system = SYSTEM_SGB2;
+    else if(!strcmp(config_file.system, "cgb")) config_system = SYSTEM_CGB;
+    else config_system = SYSTEM_AUTO;   // default
+
+    if(!strcmp(config_file.preference, "cgb")) config_preference = PREFER_CGB;
+    else if(!strcmp(config_file.preference, "gb")) config_preference = PREFER_GB;
+    else config_preference = PREFER_CGB;    // default
+
+    if(!strcmp(config_file.border, "yes")) config_border = 1;
+    else if(!strcmp(config_file.border, "no")) config_border = 0;
+    else config_border = 1;     // default
 }

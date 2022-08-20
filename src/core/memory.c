@@ -49,38 +49,55 @@ void memory_start() {
     // rom was already initialized in main.c
     ram = calloc(1024, 1058);   // 1 MB is the maximum RAM size in MBC5 + 33 KB for WRAM + HRAM
     if(!ram) {
-        die(1, "unable to allocate RAM\n");
+        die(1, "[memory] unable to allocate RAM\n");
     }
 
     // copy the game's title
     memset(game_title, 0, 17);
     memcpy(game_title, rom+0x134, 16);
-    write_log("game title is %s\n", game_title);
+    write_log("[rom] game title is %s\n", game_title);
 
     cgb_compatibility = (uint8_t *)rom + 0x143;
     if(*cgb_compatibility == 0x80) {
-        write_log("game supports both CGB and original GB\n");
-        is_cgb = 1;
+        write_log("[rom] game supports both CGB and original GB\n");
+
+        if(config_system == SYSTEM_AUTO) {
+            if(config_preference == PREFER_CGB) is_cgb = 1;
+            else is_cgb = 0;
+        } else if(config_system == SYSTEM_GB || config_system == SYSTEM_SGB2) is_cgb = 0;
+        else is_cgb = 1;
     } else if(*cgb_compatibility == 0xC0) {
-        write_log("game only works on CGB\n");
-        is_cgb = 1;
-        //die(-1, "CGB functions are currently unimplemented\n");
+        write_log("[rom] game only works on CGB\n");
+        if(config_system != SYSTEM_CGB && config_system != SYSTEM_AUTO) is_cgb = 0;
+        else is_cgb = 1;
     } else if(!*cgb_compatibility) {
-        write_log("game doesn't support CGB\n");
+        write_log("[rom] game doesn't support CGB\n");
+
         is_cgb = 0;
+
+        if(config_system == SYSTEM_CGB) {
+            write_log("[config] WARNING: config file is set to emulate CGB on ROM that doesn't support CGB, overriding like a real CGB would\n");
+        }
     } else {
-        write_log("undefined CGB compatibility value 0x%02X, assuming original GB...\n", *cgb_compatibility);
+        write_log("[rom] undefined CGB compatibility value 0x%02X, assuming game runs on original GB...\n", *cgb_compatibility);
         is_cgb = 0;
     }
 
     if(!is_cgb) {
         uint8_t *sgb_flag = (uint8_t *)rom + 0x146;
         if(*sgb_flag == 0x03) {
-            write_log("game supports SGB; SGB functions will be enabled\n");
-            is_sgb = 1;
-            sgb_start();
+            write_log("[rom] game supports SGB; ");
+
+            if(config_system == SYSTEM_AUTO || config_system == SYSTEM_SGB2) {
+                write_log("SGB2 functions will be enabled\n");
+                is_sgb = 1;
+                sgb_start();
+            } else {
+                write_log("but SGB functions are disabled in config file\n");
+                is_sgb = 0;
+            }
         } else {
-            write_log("game doesn't support SGB\n");
+            write_log("[rom] game doesn't support SGB\n");
             is_sgb = 0;
         }
     }
