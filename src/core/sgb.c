@@ -356,17 +356,19 @@ void sgb_pct_trn() {
 
     sgb_vram_transfer(sgb_border_map);
 
-    if(!using_sgb_border) {
-        resize_sgb_window();
+    if(config_border) {
+        if(!using_sgb_border) {
+            resize_sgb_window();
+        }
+
+        using_sgb_border = 1;
+        gb_x = (SGB_WIDTH / 2) - (GB_WIDTH / 2);
+        gb_y = (SGB_HEIGHT / 2) - (GB_HEIGHT / 2);
+        gb_x *= scaling;
+        gb_y *= scaling;
+
+        render_sgb_border();
     }
-
-    using_sgb_border = 1;
-    gb_x = (SGB_WIDTH / 2) - (GB_WIDTH / 2);
-    gb_y = (SGB_HEIGHT / 2) - (GB_HEIGHT / 2);
-    gb_x *= scaling;
-    gb_y *= scaling;
-
-    render_sgb_border();
 }
 
 void handle_sgb_command() {
