@@ -122,131 +122,132 @@ void create_sgb_palette(int sgb_palette, int system_palette) {
 #endif
 }
 
+void sgb_mlt_req() {
+    if(sgb_command.data[0] & 0x01) {
+        if(sgb_command.data[0] & 0x02) {
+            // four players
+            sgb_joypad_count = 4;
+        } else {
+            sgb_joypad_count = 2;
+        }
+
+#ifdef SGB_LOG
+        write_log("[sgb] MLT_REQ: enabled %d multiplayer joypads\n", sgb_joypad_count);
+#endif
+        sgb_current_joypad = 0x0F;
+        sgb_interfere = 1;
+    } else {
+#ifdef SGB_LOG
+        write_log("[sgb] MLT_REQ: disabled multiplayer joypads\n");
+#endif
+        sgb_joypad_count = 1;
+        sgb_interfere = 0;
+    }
+}
+
+void sgb_mask_en() {
+    sgb_command.data[0] %= 3;
+    sgb_screen_mask = sgb_command.data[0];
+
+#ifdef SGB_LOG
+    if(sgb_command.data[0] == 0) {
+        write_log("[sgb] MASK_EN: cancelling screen mask\n");
+    } else if(sgb_command.data[0] == 1) {
+        write_log("[sgb] MASK_EN: freezing current screen\n");
+    } else if(sgb_command.data[0] == 2) {
+        write_log("[sgb] MASK_EN: freezing screen at black\n");
+    } else {
+        write_log("[sgb] MASK_EN: freezing screen at color zero\n");
+    }
+#endif
+}
+
+void sgb_pal_trn() {
+#ifdef SGB_LOG
+    write_log("[sgb] PAL_TRN: transferring 4 KiB of palette data from VRAM to SNES\n");
+#endif
+
+    sgb_vram_transfer(sgb_palette_data);
+}
+
+void sgb_pal_set() {
+    uint16_t *palette_numbers = (uint16_t *)(&sgb_command.data[0]);
+
+    for(int i = 0; i < 4; i++) {
+#ifdef SGB_LOG
+        write_log("[sgb] PAL_SET: palette %d -> system palette %d\n", i, palette_numbers[i]);
+#endif
+
+        create_sgb_palette(i, palette_numbers[i]);
+    }
+}
+
+void sgb_attr_blk() {
+#ifdef SGB_LOG
+    write_log("[sgb] ATTR_BLK: setting color attributes with %d datasets\n", sgb_command.data[0]);
+#endif
+
+    sgb_attr_block_count = sgb_command.data[0];
+
+    memset(&sgb_attr_blocks, 0, sizeof(sgb_attr_block_t)*18);
+
+    uint8_t *ptr = &sgb_command.data[1];
+    for(int i = 0; i < sgb_command.data[0]; i++) {
+        //write_log("[sgb] ATTR_BLK entry %d: flags 0x%02X from X/Y %d/%d to %d/%d\n", i, ptr[0], ptr[2], ptr[3], ptr[4], ptr[5]);
+        if(ptr[0] & 0x01) sgb_attr_blocks[i].inside = 1;
+        if(ptr[0] & 0x02) sgb_attr_blocks[i].surrounding = 1;
+        if(ptr[0] & 0x04) sgb_attr_blocks[i].outside = 1;
+
+        sgb_attr_blocks[i].palette_inside = ptr[1] & 3;
+        sgb_attr_blocks[i].palette_surrounding = (ptr[1] >> 2) & 3;
+        sgb_attr_blocks[i].palette_outside = (ptr[1] >> 4) & 3;
+
+        sgb_attr_blocks[i].x1 = ptr[2] * 8;
+        sgb_attr_blocks[i].y1 = ptr[3] * 8;
+        sgb_attr_blocks[i].x2 = (ptr[4] + 1) * 8;
+        sgb_attr_blocks[i].y2 = (ptr[5] + 1) * 8;
+
+#ifdef SGB_LOG
+        write_log("[sgb]  %d: flags 0x%02X from X,Y %d,%d to %d,%d", i, ptr[0], sgb_attr_blocks[i].x1, sgb_attr_blocks[i].y1, sgb_attr_blocks[i].x2, sgb_attr_blocks[i].y2);
+        if(ptr[0]) {
+            write_log(", ");
+            if(sgb_attr_blocks[i].inside) {
+                write_log("in = %d ", sgb_attr_blocks[i].palette_inside);
+            }
+
+            if(sgb_attr_blocks[i].outside) {
+                write_log("out = %d ", sgb_attr_blocks[i].palette_outside);
+            }
+
+            if(sgb_attr_blocks[i].surrounding) {
+                write_log("surround = %d ", sgb_attr_blocks[i].palette_surrounding);
+            }
+        }
+
+        write_log("\n");
+#endif
+
+        ptr += 6;
+    }
+
+    using_sgb_palette = 1;
+}
+
 void handle_sgb_command() {
     uint8_t command;
     command = sgb_command.command_length >> 3;
-    uint16_t *palette_numbers;
 
     switch(command) {
     case SGB_MLT_REQ:
-#ifdef SGB_LOG
-        //write_log("[sgb] handling command 0x%02X: MLT_REQ\n", command);
-#endif
-        if(sgb_command.data[0] & 0x01) {
-            if(sgb_command.data[0] & 0x02) {
-                // four players
-                sgb_joypad_count = 4;
-            } else {
-                sgb_joypad_count = 2;
-            }
-
-#ifdef SGB_LOG
-            write_log("[sgb] MLT_REQ: enabled %d multiplayer joypads\n", sgb_joypad_count);
-#endif
-            sgb_current_joypad = 0x0F;
-            sgb_interfere = 1;
-        } else {
-#ifdef SGB_LOG
-            write_log("[sgb] MLT_REQ: disabled multiplayer joypads\n");
-#endif
-            sgb_joypad_count = 1;
-            sgb_interfere = 0;
-        }
-        break;
+        return sgb_mlt_req();
     case SGB_MASK_EN:
-#ifdef SGB_LOG
-        //write_log("[sgb] handling command 0x%02X: MASK_EN\n", command);
-#endif
-
-        sgb_command.data[0] %= 3;
-        sgb_screen_mask = sgb_command.data[0];
-
-#ifdef SGB_LOG
-        if(sgb_command.data[0] == 0) {
-            write_log("[sgb] MASK_EN: cancelling screen mask\n");
-        } else if(sgb_command.data[0] == 1) {
-            write_log("[sgb] MASK_EN: freezing current screen\n");
-        } else if(sgb_command.data[0] == 2) {
-            write_log("[sgb] MASK_EN: freezing screen at black\n");
-        } else {
-            write_log("[sgb] MASK_EN: freezing screen at color zero\n");
-        }
-#endif
-        break;
+        return sgb_mask_en();
     case SGB_PAL_TRN:
-#ifdef SGB_LOG
-        //write_log("[sgb] handling command 0x%02X: PAL_TRN\n", command);
-        write_log("[sgb] PAL_TRN: transferring 4 KiB of palette data from VRAM to SNES\n");
-#endif
-
-        sgb_vram_transfer(sgb_palette_data);
-        break;
+        return sgb_pal_trn();
     case SGB_PAL_SET:
-#ifdef SGB_LOG
-        //write_log("[sgb] handling command 0x%02X: PAL_SET\n", command);
-#endif
-
-        palette_numbers = (uint16_t *)(&sgb_command.data[0]);
-
-        for(int i = 0; i < 4; i++) {
-#ifdef SGB_LOG
-            write_log("[sgb] PAL_SET: palette %d -> system palette %d\n", i, palette_numbers[i]);
-#endif
-
-            create_sgb_palette(i, palette_numbers[i]);
-        }
-        break;
-
+        return sgb_pal_set();
     case SGB_ATTR_BLK:
-#ifdef SGB_LOG
-        //write_log("[sgb] handling command 0x%02X: ATTR_BLK\n", command);
-        write_log("[sgb] ATTR_BLK: setting color attributes with %d datasets\n", sgb_command.data[0]);
-#endif
-        sgb_attr_block_count = sgb_command.data[0];
-
-        memset(&sgb_attr_blocks, 0, sizeof(sgb_attr_block_t)*18);
-
-        uint8_t *ptr = &sgb_command.data[1];
-        for(int i = 0; i < sgb_command.data[0]; i++) {
-            //write_log("[sgb] ATTR_BLK entry %d: flags 0x%02X from X/Y %d/%d to %d/%d\n", i, ptr[0], ptr[2], ptr[3], ptr[4], ptr[5]);
-            if(ptr[0] & 0x01) sgb_attr_blocks[i].inside = 1;
-            if(ptr[0] & 0x02) sgb_attr_blocks[i].surrounding = 1;
-            if(ptr[0] & 0x04) sgb_attr_blocks[i].outside = 1;
-
-            sgb_attr_blocks[i].palette_inside = ptr[1] & 3;
-            sgb_attr_blocks[i].palette_surrounding = (ptr[1] >> 2) & 3;
-            sgb_attr_blocks[i].palette_outside = (ptr[1] >> 4) & 3;
-
-            sgb_attr_blocks[i].x1 = ptr[2] * 8;
-            sgb_attr_blocks[i].y1 = ptr[3] * 8;
-            sgb_attr_blocks[i].x2 = (ptr[4] + 1) * 8;
-            sgb_attr_blocks[i].y2 = (ptr[5] + 1) * 8;
-
-#ifdef SGB_LOG
-            write_log("[sgb]  %d: flags 0x%02X from X,Y %d,%d to %d,%d", i, ptr[0], sgb_attr_blocks[i].x1, sgb_attr_blocks[i].y1, sgb_attr_blocks[i].x2, sgb_attr_blocks[i].y2);
-            if(ptr[0]) {
-                write_log(", ");
-                if(sgb_attr_blocks[i].inside) {
-                    write_log("in = %d ", sgb_attr_blocks[i].palette_inside);
-                }
-
-                if(sgb_attr_blocks[i].outside) {
-                    write_log("out = %d ", sgb_attr_blocks[i].palette_outside);
-                }
-
-                if(sgb_attr_blocks[i].surrounding) {
-                    write_log("surround = %d ", sgb_attr_blocks[i].palette_surrounding);
-                }
-            }
-
-            write_log("\n");
-#endif
-
-            ptr += 6;
-        }
-
-        using_sgb_palette = 1;
-        break;
+        return sgb_attr_blk();
     default:
         write_log("[sgb] unimplemented command 0x%02X, ignoring...\n", command);
         return;
