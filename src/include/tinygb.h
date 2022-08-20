@@ -16,6 +16,14 @@
 #define GB_CPU_SPEED        4194304 // Hz
 #define CGB_CPU_SPEED       8388608
 
+#define SYSTEM_AUTO         0
+#define SYSTEM_GB           1
+#define SYSTEM_SGB2         2
+#define SYSTEM_CGB          3
+
+#define PREFER_CGB          0
+#define PREFER_GB           1
+
 /* DISPLAY:
 
     Width                       160 px
@@ -91,6 +99,7 @@ extern int scaled_w, scaled_h;
 extern timing_t timing;
 extern int mbc_type;
 
+config_file_t config_file;
 void update_window(uint32_t *);
 void update_border(uint32_t *);
 void destroy_window();
@@ -106,6 +115,10 @@ void cpu_start();
 void display_start();
 void timer_start();
 void sound_start();
+
+int config_system;
+int config_preference;
+int config_border;
 
 // cpu
 extern int throttle_enabled, throttle_time;
