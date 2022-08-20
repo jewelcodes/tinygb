@@ -412,7 +412,7 @@ inline void mbc5_write(uint16_t addr, uint8_t byte) {
         #endif
     } else if(addr >= 0x3000 && addr <= 0x3FFF) {
         mbc5.rom_bank &= 0xFF;
-        mbc5.rom_bank |= (byte << 8);   // high bit of ROM bank select
+        mbc5.rom_bank |= ((byte & 1) << 8);   // high bit of ROM bank select
 
         #ifdef MBC_LOG
         write_log("[mbc] selecting ROM bank %d\n", mbc5.rom_bank);
@@ -461,7 +461,7 @@ inline uint8_t mbc5_read(uint16_t addr) {
     uint8_t *rom_bytes = (uint8_t *)rom;
     if(addr >= 0x4000 && addr <= 0x7FFF) {
         addr -= 0x4000;
-        return rom_bytes[(mbc5.rom_bank * 16384) + addr];
+        return rom_bytes[((mbc5.rom_bank & (rom_size_banks-1)) * 16384) + addr];
     } else if(addr >= 0xA000 && addr <= 0xBFFF) {
         if(!mbc5.ram_enable) {
             write_log("[mbc] warning: attempt to read from address 0x%04X when external RAM is disabled, returning ones\n", addr);
