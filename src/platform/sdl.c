@@ -55,8 +55,27 @@ void update_window(uint32_t *framebuffer) {
     }
 }
 
+void update_border(uint32_t *framebuffer) {
+    void *src, *dst;
+
+    if(surface->format->BytesPerPixel == 4) {
+        // 32-bpp
+        for(int i = 0; i < sgb_scaled_h; i++) {
+            src = (void *)(framebuffer + (i * sgb_scaled_w));
+            dst = (void *)(surface->pixels + (i * surface->pitch));
+
+            memcpy(dst, src, sgb_scaled_w*4);
+        }
+    } else {
+        die(-1, "unimplemented non 32-bpp surfaces\n");
+    }
+
+    //SDL_UpdateWindowSurface(window);
+}
+
 void resize_sgb_window() {
     SDL_SetWindowSize(window, SGB_WIDTH*scaling, SGB_HEIGHT*scaling);
+    SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
     surface = SDL_GetWindowSurface(window);
 }
 
@@ -106,7 +125,7 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-    window = SDL_CreateWindow("tinygb", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, GB_WIDTH*scaling, GB_HEIGHT*scaling, SDL_WINDOW_SHOWN);
+    window = SDL_CreateWindow("tinygb", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, GB_WIDTH*scaling, GB_HEIGHT*scaling, SDL_WINDOW_SHOWN);
     if(!window) {
         write_log("couldn't create SDL window: %s\n", SDL_GetError());
         free(rom);

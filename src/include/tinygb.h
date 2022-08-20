@@ -86,6 +86,7 @@ extern timing_t timing;
 extern int mbc_type;
 
 void update_window(uint32_t *);
+void update_border(uint32_t *);
 void destroy_window();
 void delay(int);
 void resize_sgb_window();
@@ -121,6 +122,7 @@ void send_interrupt(int);
 
 // display
 extern int drawn_frames, framecount;
+void scale_xline(uint32_t *, uint32_t *, int);
 void display_write(uint16_t, uint8_t);
 uint8_t display_read(uint16_t);
 void display_cycle();
@@ -149,6 +151,7 @@ void joypad_handle(int, int);
 // SGB functions
 int sgb_transferring, sgb_interfere, sgb_screen_mask, using_sgb_palette, using_sgb_border;
 int gb_x, gb_y;
+int sgb_scaled_h, sgb_scaled_w;
 void sgb_start();
 void sgb_write(uint8_t);
 uint8_t sgb_read();

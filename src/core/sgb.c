@@ -18,6 +18,7 @@ int sgb_command_size;
 int using_sgb_palette = 0;
 int using_sgb_border = 0;
 int gb_x, gb_y;
+int sgb_scaled_h, sgb_scaled_w;
 
 sgb_command_t sgb_command;
 sgb_palette_t sgb_palettes[4];
@@ -34,14 +35,26 @@ uint8_t *sgb_palette_data;
 uint8_t *sgb_tiles;
 uint8_t *sgb_border_map;
 
+uint32_t *sgb_border;
+uint32_t *sgb_scaled_border;
+sgb_border_palette_t sgb_border_palettes[4];
+
 void sgb_start() {
     sgb_palette_data = calloc(1, 4096);
     sgb_tiles = calloc(1, 8192);
     sgb_border_map = calloc(1, 4096);
-    if(!sgb_palette_data || !sgb_tiles || !sgb_border_map) {
+
+    sgb_border = calloc(SGB_WIDTH*SGB_HEIGHT, 4);
+    if(scaling != 1) sgb_scaled_border = calloc(SGB_WIDTH*SGB_HEIGHT, 4*scaling*scaling*4);
+    else sgb_scaled_border = sgb_border;
+
+    if(!sgb_palette_data || !sgb_tiles || !sgb_border_map || !sgb_border || !sgb_scaled_border) {
         write_log("[sgb] unable to allocate memory\n");
         die(-1, "");
     }
+
+    sgb_scaled_h = SGB_HEIGHT*scaling;
+    sgb_scaled_w = SGB_WIDTH*scaling;
 }
 
 inline uint32_t truecolor(uint16_t color16) {
@@ -69,46 +82,13 @@ void sgb_vram_transfer(uint8_t *dst) {
         return;
     }
 
-    uint16_t tiles, map;
+    uint16_t tiles;
 
     if(lcdc & 0x10) tiles = 0x8000;
     else tiles = 0x8800;
 
-    if(lcdc & 0x08) map = 0x9C00;
-    else map = 0x9800;
-
-#ifdef SGB_LOG
-    write_log("[sgb]  VRAM transfer: using map at 0x%04X with tiles at 0x%04X\n", map, tiles);
-#endif
-
-    uint8_t tile;
-    uint16_t data_ptr;
-
-    //int n = 0;
-
-    for(int i = 0; i < 256; i++) {
-        tile = read_byte(map+i);
-        if(lcdc & 0x10) {
-            data_ptr = tiles + (tile * 16);     // unsigned indexing
-        } else {
-            data_ptr = tiles + 0x800;       // to 0x9000, where tile zero is
-
-            if(tile & 0x80) {
-                // negative
-                tile = ~tile;
-                tile++;
-
-                data_ptr -= (tile * 16);
-            } else {
-                // positive
-                data_ptr += (tile * 16);
-            }
-        }
-
-        // copy 16 bytes
-        for(int j = 0; j < 16; j++) {
-            dst[(i*16)+j] = read_byte(data_ptr+j);
-        }
+    for(int i = 0; i < 4096; i++) {
+        dst[i] = read_byte(tiles+i);
     }
 }
 
@@ -131,6 +111,118 @@ void create_sgb_palette(int sgb_palette, int system_palette) {
     }
 #endif
 }
+
+void create_sgb_border_palettes() {
+    uint8_t *data = (uint8_t *)(sgb_border_map + 0x800);
+    uint16_t color16;
+    uint32_t color32;
+
+    for(int i = 0; i < 4; i++) {
+        for(int j = 0; j < 16; j++) {
+            color16 = data[(i * 32)+(j*2)] & 0xFF;
+            color16 |= (data[(i * 32)+(j*2)+1]) << 8;
+
+            color32 = truecolor(color16);
+
+#ifdef SGB_LOG
+            int r = (color32 >> 16) & 0xFF;
+            int g = (color32 >> 8) & 0xFF;
+            int b = color32 & 0xFF;
+
+            write_log("[sgb]  SGB border palette %d color %d = \e[38;2;%d;%d;%dm#%06X\e[0m\n", i, j, r, g, b, color32);
+#endif
+
+            sgb_border_palettes[i].colors[j] = color32;
+        }
+    }
+}
+
+void plot_sgb_tile(int x, int y, uint8_t tile, int palette, int xflip, int yflip) {
+    //write_log("[sgb] plotting tile %d at x,y %d,%d with palette number %d\n", tile, x, y, palette);
+    int xp = x << 3;
+    int yp = y << 3;
+
+    uint8_t *ptr = (uint8_t *)((sgb_tiles) + (tile * 32));
+
+    uint8_t color_index;
+    uint8_t data3, data2, data1, data0;
+
+    uint32_t color;
+
+    // 8x8 tiles
+    for(int i = 0; i < 8; i++) {
+        for(int j = 7; j >= 0; j--) {
+            data3 = (ptr[16+1] >> (j)) & 1;
+            data2 = (ptr[16] >> (j)) & 1;
+            data1 = (ptr[1] >> (j)) & 1;
+            data0 = (ptr[0] >> (j)) & 1;
+
+            data3 <<= 3;
+            data2 <<= 2;
+            data1 <<= 1;
+
+            color_index = data3 | data2 | data1 | data0;
+
+            //write_log("color index: %d\n", color_index);
+
+            color = sgb_border_palettes[palette].colors[color_index];
+            sgb_border[(yp * 256) + xp] = color;
+            xp++;
+        }
+
+        yp++;
+        xp = x << 3;
+        ptr += 2;
+    }
+}
+
+void render_sgb_border() {
+#ifdef SGB_LOG
+    write_log("[sgb]  SGB border was modified, rendering...\n");
+#endif
+
+    create_sgb_border_palettes();
+
+    uint8_t *map = sgb_border_map;
+    uint16_t map_entry;
+
+    uint8_t tile, palette, xflip, yflip;
+
+    // sgb border is 32x28 tiles
+    for(int i = 0; i < 28; i++) {
+        for(int j = 0; j < 32; j++) {
+            //write_log("map entry %d,%d is 0x%04X\n", j, i, (uint16_t)(map[0] | (map[1] << 8)));
+
+            tile = map[0];
+
+            palette = (map[1] >> 2) & 3;
+
+            map += 2;
+
+            //if(palette >= 4) palette -= 4;
+            //if(map_entry & 0x4000) xflip = 1;
+            //if(map_entry & 0x8000) yflip = 1;
+
+            plot_sgb_tile(j, i, tile, palette, xflip, yflip);
+        }
+    }
+
+    // scale up the buffer
+    if(scaling != 1) {
+        for(int y = 0; y < sgb_scaled_h; y++) {
+            uint32_t *dst = sgb_scaled_border + (y * sgb_scaled_w);
+            uint32_t *src = sgb_border + ((y / scaling) * SGB_WIDTH);
+
+            scale_xline(dst, src, sgb_scaled_w);
+        }
+    }
+
+    update_border(sgb_scaled_border);
+}
+
+//
+// individual SGB commands
+//
 
 void sgb_mlt_req() {
     if(sgb_command.data[0] & 0x01) {
@@ -253,6 +345,8 @@ void sgb_chr_trn() {
     } else {
         sgb_vram_transfer(sgb_tiles);
     }
+
+    if(using_sgb_border) render_sgb_border();
 }
 
 void sgb_pct_trn() {
@@ -271,7 +365,8 @@ void sgb_pct_trn() {
     gb_y = (SGB_HEIGHT / 2) - (GB_HEIGHT / 2);
     gb_x *= scaling;
     gb_y *= scaling;
-    //render_sgb_border();
+
+    render_sgb_border();
 }
 
 void handle_sgb_command() {
@@ -298,6 +393,8 @@ void handle_sgb_command() {
         return;
     }
 }
+
+// for joypad.c
 
 void sgb_write(uint8_t byte) {
     uint8_t p14 = (byte >> 4) & 1;

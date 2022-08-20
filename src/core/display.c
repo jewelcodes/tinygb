@@ -457,8 +457,8 @@ uint8_t display_read(uint16_t addr) {
     return 0xFF;    // unreachable
 }
 
-inline void scale_xline(uint32_t *new, uint32_t *old) {
-    for(int i = 0; i < scaled_w; i++) {
+void scale_xline(uint32_t *new, uint32_t *old, int scaled_width) {
+    for(int i = 0; i < scaled_width; i++) {
         //printf("copy new X %d, old X %d\n", i, i/scaling);
         new[i] = old[(i/scaling)];
         //new[i] = 0xFFFFFF;
@@ -474,7 +474,7 @@ void update_framebuffer() {
             uint32_t *dst = scaled_framebuffer + (y * scaled_w);
             uint32_t *src = framebuffer + ((y / scaling) * GB_WIDTH);
 
-            scale_xline(dst, src);
+            scale_xline(dst, src, scaled_w);
         }
     }
 
