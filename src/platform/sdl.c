@@ -86,7 +86,7 @@ int main(int argc, char **argv) {
     }
 
     open_log();
-    //open_config();
+    open_config();
 
     // open the rom
     rom_filename = argv[1];

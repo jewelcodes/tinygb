@@ -63,6 +63,12 @@ typedef struct {
     uint16_t af, bc, de, hl, sp, pc, ime;
 } cpu_t;
 
+typedef struct {
+    char *a, *b, *start, *select, *up, *down, *left, *right;
+    char *throttle;
+    char *system, *preference, *border;
+} config_file_t;
+
 #define FLAG_ZF     0x80
 #define FLAG_N      0x40
 #define FLAG_H      0x20
@@ -92,6 +98,7 @@ void delay(int);
 void resize_sgb_window();
 
 void open_log();
+void open_config();
 void write_log(const char *, ...);
 void die(int, const char *, ...);
 void memory_start();
