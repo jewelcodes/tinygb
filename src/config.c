@@ -122,6 +122,8 @@ void open_config() {
     config_file.border = get_property("border");
     config_file.scaling = get_property("scaling");
 
+    fclose(file);
+
     if(!strcmp(config_file.system, "auto")) config_system = SYSTEM_AUTO;
     else if(!strcmp(config_file.system, "gb")) config_system = SYSTEM_GB;
     else if(!strcmp(config_file.system, "sgb2")) config_system = SYSTEM_SGB2;
