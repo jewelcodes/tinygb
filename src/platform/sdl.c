@@ -282,6 +282,8 @@ int main(int argc, char **argv) {
             case SDL_KEYUP:
                 is_down = (e.type == SDL_KEYDOWN);
 
+                key = 0;
+
                 // convert SDL keys to internal keys
                 // TODO: read these keys from a config file
                 /*switch(e.key.keysym.sym) {
@@ -328,9 +330,9 @@ int main(int argc, char **argv) {
                 else if(e.key.keysym.sym == key_throttle) {
                     if(is_down) throttle_enabled = 0;
                     else throttle_enabled = 1;
-                } else {
-                    key = 0;
-                }
+                } else if((e.key.keysym.sym == SDLK_PLUS || e.key.keysym.sym == SDLK_EQUALS) && is_down) next_palette();
+                else if(e.key.keysym.sym == SDLK_MINUS && is_down) prev_palette();
+                else key = 0;
 
                 break;
             default:

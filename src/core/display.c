@@ -53,11 +53,25 @@ int hdma_hblank_cycles = 0;
 int drawn_frames = 0;
 
 uint32_t bw_palette[4] = {
-    //0xFFFFFF, 0xAAAAAA, 0x555555, 0x000000
     0xC4CFA1, 0x8B956D, 0x4D533C, 0x1F1F1F
 };
 
+uint32_t preset_palettes[10][4] = {
+    {0xC4CFA1, 0x8B956D, 0x4D533C, 0x1F1F1F},   // 0
+    {0x9BEBEB, 0x6DA1DF, 0x6653CB, 0x501A68},   // 1
+    {0xFFF5DE, 0xFD9785, 0xF60983, 0x15017A},   // 2
+    {0xDCEDEB, 0x90ADBB, 0x56689D, 0x262338},   // 3
+    {0xF7FFB7, 0xA5D145, 0x2A8037, 0x001B27},   // 4
+    {0xFBDFB7, 0xFFB037, 0xEE316B, 0x842D72},   // 5
+    {0xFE7BBF, 0x974EC3, 0x504099, 0x313866},   // 6
+    {0x58CCED, 0x3895D3, 0x1261A0, 0x072F5F},   // 7
+    {0xFEFDDF, 0xFDD037, 0xFAB22C, 0xDA791A},   // 8
+    {0xFFFFFF, 0xAAAAAA, 0x555555, 0x000000},   // 9
+};
+
 uint32_t cgb_palette[4];
+
+int monochrome_palette;
 
 // dummy debug function
 void cgb_dump_bgpd() {
@@ -100,6 +114,31 @@ void cgb_dump_obpd() {
     }
 }
 
+void load_bw_palette() {
+    if(monochrome_palette > 9) monochrome_palette = 0;
+
+    write_log("[display] loaded monochrome palette %d\n", monochrome_palette);
+
+    bw_palette[0] = preset_palettes[monochrome_palette][0];
+    bw_palette[1] = preset_palettes[monochrome_palette][1];
+    bw_palette[2] = preset_palettes[monochrome_palette][2];
+    bw_palette[3] = preset_palettes[monochrome_palette][3];
+}
+
+void next_palette() {
+    if(monochrome_palette >= 9) monochrome_palette = 0;
+    else monochrome_palette++;
+
+    load_bw_palette();
+}
+
+void prev_palette() {
+    if(monochrome_palette == 0) monochrome_palette = 9;
+    else monochrome_palette--;
+
+    load_bw_palette();
+}
+
 void display_start() {
     memset(&display, 0, sizeof(display_t));
     display.lcdc = 0x91;
@@ -112,6 +151,8 @@ void display_start() {
     display.obp1 = 0xFF;
     display.wy = 0;
     display.wx = 0;
+
+    load_bw_palette();
 
     if(is_cgb) {
         for(int i = 0; i < 32; i++) {

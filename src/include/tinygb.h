@@ -75,7 +75,7 @@ typedef struct {
 typedef struct {
     char *a, *b, *start, *select, *up, *down, *left, *right;
     char *throttle;
-    char *scaling, *system, *preference, *border;
+    char *palette, *scaling, *system, *preference, *border;
 } config_file_t;
 
 #define FLAG_ZF     0x80
@@ -143,6 +143,9 @@ void send_interrupt(int);
 
 // display
 extern int drawn_frames, framecount;
+int monochrome_palette;
+void next_palette();
+void prev_palette();
 void scale_xline(uint32_t *, uint32_t *, int);
 void hflip_tile(uint32_t *, int, int);
 void vflip_tile(uint32_t *, int, int);

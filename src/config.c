@@ -19,6 +19,7 @@
 #define DEFAULT_PREFERENCE  "cgb"
 #define DEFAULT_BORDER      "yes"
 #define DEFAULT_SCALING     "2"
+#define DEFAULT_PALETTE     "0"
 
 config_file_t config_file;
 
@@ -121,6 +122,7 @@ void open_config() {
     config_file.preference = get_property("preference");
     config_file.border = get_property("border");
     config_file.scaling = get_property("scaling");
+    config_file.palette = get_property("palette");
 
     fclose(file);
 
@@ -140,4 +142,7 @@ void open_config() {
 
     scaling = atoi(config_file.scaling);
     if(!scaling) scaling = 2;   // default
+
+    monochrome_palette = atoi(config_file.palette);
+    if(monochrome_palette > 9) monochrome_palette = 0;
 }
