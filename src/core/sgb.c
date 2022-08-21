@@ -184,16 +184,13 @@ void plot_sgb_tile(int x, int y, uint8_t tile, int palette, int xflip, int yflip
         ptr += 2;
     }
 
-    if(xflip) {
-        xp = x << 3;
-        yp = y << 3;
-        hflip_tile(sgb_border, xp, yp);
-    }
+    if(xflip) hflip_tile(sgb_border, x << 3, y << 3);
+    if(yflip) vflip_tile(sgb_border, x << 3, y << 3);
 }
 
 void render_sgb_border() {
     if(sgb_screen_mask) return;
-    
+
 #ifdef SGB_LOG
     write_log("[sgb]  SGB border was modified, rendering...\n");
 #endif

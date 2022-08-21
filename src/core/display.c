@@ -548,6 +548,25 @@ void hflip_tile(uint32_t *buffer, int x, int y) {
     }
 }
 
+void vflip_tile(uint32_t *buffer, int x, int y) {
+    // flips an 8x8 tile within a 256x256 buffer
+    uint32_t temp_color;
+
+    uint32_t *ptr1 = (uint32_t *)((void *)buffer + (y * 256*4) + (x * 4));
+    uint32_t *ptr2 = (uint32_t *)((void *)buffer + ((y+7) * 256*4) + (x * 4));
+
+    for(int i = 0; i < 4; i++) {
+        for(int j = 0; j < 8; j++) {
+            temp_color = ptr1[j];
+            ptr1[j] = ptr2[j];
+            ptr2[j] = temp_color;
+        }
+
+        ptr1 += 256;
+        ptr2 -= 256;
+    }
+}
+
 void plot_bg_tile(int is_window, int x, int y, uint8_t tile, uint8_t *tile_data, uint8_t cgb_flags) {
     // x and y are in tiles, not pixels
     int xp = x << 3;    // x8
