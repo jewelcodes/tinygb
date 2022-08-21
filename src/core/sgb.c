@@ -38,6 +38,7 @@ uint8_t *sgb_border_map;
 uint32_t *sgb_border;
 uint32_t *sgb_scaled_border;
 sgb_border_palette_t sgb_border_palettes[4];
+uint32_t sgb_color_zero;
 
 void sgb_start() {
     sgb_palette_data = calloc(1, 4096);
@@ -100,6 +101,11 @@ void create_sgb_palette(int sgb_palette, int system_palette) {
     sgb_palettes[sgb_palette].colors[2] = truecolor(data[2]);
     sgb_palettes[sgb_palette].colors[3] = truecolor(data[3]);
 
+    if(sgb_palettes[sgb_palette].colors[0] != sgb_color_zero) {
+        sgb_color_zero = sgb_palettes[sgb_palette].colors[0];
+        if(using_sgb_border) render_sgb_border();
+    }
+
 #ifdef SGB_LOG
     for(int i = 0; i < 4; i++) {
         int r, g, b; 
@@ -135,6 +141,8 @@ void create_sgb_border_palettes() {
             sgb_border_palettes[i].colors[j] = color32;
         }
     }
+
+    //sgb_color_zero = sgb_border_palettes[3].colors[0];
 }
 
 void plot_sgb_tile(int x, int y, uint8_t tile, int palette, int xflip, int yflip) {
@@ -165,7 +173,8 @@ void plot_sgb_tile(int x, int y, uint8_t tile, int palette, int xflip, int yflip
 
             //write_log("color index: %d\n", color_index);
 
-            color = sgb_border_palettes[palette].colors[color_index];
+            if(color_index) color = sgb_border_palettes[palette].colors[color_index];
+            else color = sgb_color_zero;
             sgb_border[(yp * 256) + xp] = color;
             xp++;
         }
@@ -183,6 +192,8 @@ void plot_sgb_tile(int x, int y, uint8_t tile, int palette, int xflip, int yflip
 }
 
 void render_sgb_border() {
+    if(sgb_screen_mask) return;
+    
 #ifdef SGB_LOG
     write_log("[sgb]  SGB border was modified, rendering...\n");
 #endif
