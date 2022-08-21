@@ -275,6 +275,8 @@ void sgb_mask_en() {
         write_log("[sgb] MASK_EN: freezing screen at color zero\n");
     }
 #endif
+
+    if(using_sgb_border) render_sgb_border();
 }
 
 void sgb_pal_trn() {
