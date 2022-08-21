@@ -704,6 +704,11 @@ void plot_bg_tile(int is_window, int x, int y, uint8_t tile, uint8_t *tile_data,
         xp = x << 3;    // x8
         ptr += 2;
     }
+
+    if(is_cgb) {
+        if(cgb_flags & 0x20) hflip_tile(background_buffer, x << 3, y << 3);
+        if(cgb_flags & 0x40) vflip_tile(background_buffer, x << 3, y << 3);
+    }
 }
 
 inline void hflip_sprite(uint32_t *sprite_colors, uint8_t *sprite_data) {
