@@ -18,6 +18,7 @@
 #define DEFAULT_SYSTEM      "auto"
 #define DEFAULT_PREFERENCE  "cgb"
 #define DEFAULT_BORDER      "yes"
+#define DEFAULT_SCALING     "2"
 
 config_file_t config_file;
 
@@ -41,6 +42,9 @@ static void load_defaults() {
     config_file.system = DEFAULT_SYSTEM;
     config_file.preference = DEFAULT_PREFERENCE;
     config_file.border = DEFAULT_BORDER;
+    config_file.scaling = DEFAULT_SCALING;
+
+    scaling = 2;
 }
 
 static void lowercase(char *str) {
@@ -116,6 +120,7 @@ void open_config() {
     config_file.system = get_property("system");
     config_file.preference = get_property("preference");
     config_file.border = get_property("border");
+    config_file.scaling = get_property("scaling");
 
     if(!strcmp(config_file.system, "auto")) config_system = SYSTEM_AUTO;
     else if(!strcmp(config_file.system, "gb")) config_system = SYSTEM_GB;
@@ -130,4 +135,7 @@ void open_config() {
     if(!strcmp(config_file.border, "yes")) config_border = 1;
     else if(!strcmp(config_file.border, "no")) config_border = 0;
     else config_border = 1;     // default
+
+    scaling = atoi(config_file.scaling);
+    if(!scaling) scaling = 2;   // default
 }

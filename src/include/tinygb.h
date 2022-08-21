@@ -5,6 +5,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdlib.h>
 //#include <SDL.h>
 
 #define GB_WIDTH    160
@@ -74,7 +75,7 @@ typedef struct {
 typedef struct {
     char *a, *b, *start, *select, *up, *down, *left, *right;
     char *throttle;
-    char *system, *preference, *border;
+    char *scaling, *system, *preference, *border;
 } config_file_t;
 
 #define FLAG_ZF     0x80
