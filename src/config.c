@@ -20,8 +20,12 @@
 #define DEFAULT_BORDER      "yes"
 #define DEFAULT_SCALING     "2"
 #define DEFAULT_PALETTE     "0"
+#define DEFAULT_SPEED       "100"
 
 config_file_t config_file;
+
+int throttle_lo, throttle_hi;
+int target_speed;
 
 static FILE *file;
 
@@ -46,6 +50,9 @@ static void load_defaults() {
     config_file.scaling = DEFAULT_SCALING;
 
     scaling = 2;
+    monochrome_palette = 0;
+    throttle_lo = 98;
+    throttle_hi = 102;
 }
 
 static void lowercase(char *str) {
@@ -123,6 +130,7 @@ void open_config() {
     config_file.border = get_property("border");
     config_file.scaling = get_property("scaling");
     config_file.palette = get_property("palette");
+    config_file.speed = get_property("speed");
 
     fclose(file);
 
@@ -145,4 +153,10 @@ void open_config() {
 
     monochrome_palette = atoi(config_file.palette);
     if(monochrome_palette > 9) monochrome_palette = 0;
+
+    target_speed = atoi(config_file.speed);
+    if(target_speed < 2) target_speed = 100;    // percent
+
+    throttle_lo = target_speed-2;
+    throttle_hi = target_speed+2;
 }

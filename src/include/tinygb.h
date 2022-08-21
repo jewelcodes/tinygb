@@ -75,7 +75,7 @@ typedef struct {
 typedef struct {
     char *a, *b, *start, *select, *up, *down, *left, *right;
     char *throttle;
-    char *palette, *scaling, *system, *preference, *border;
+    char *speed, *palette, *scaling, *system, *preference, *border;
 } config_file_t;
 
 #define FLAG_ZF     0x80
@@ -93,6 +93,7 @@ extern int cpu_speed;
 
 extern int scaling, frameskip;
 extern int scaled_w, scaled_h;
+extern int throttle_hi, throttle_lo;
 
 //extern SDL_Window *window;
 //extern SDL_Surface *surface;
@@ -101,6 +102,7 @@ extern timing_t timing;
 extern int mbc_type;
 
 config_file_t config_file;
+int target_speed;
 void update_window(uint32_t *);
 void update_border(uint32_t *);
 void destroy_window();

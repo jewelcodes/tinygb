@@ -360,8 +360,11 @@ int main(int argc, char **argv) {
 
             // adjust cpu throttle according to acceptable fps (98%-102%)
             if(throttle_enabled) {
-                if(percentage < 98) {
+                if(percentage < throttle_lo) {
                     // emulation is too slow
+                    if(percentage < (target_speed / 2))
+                        throttle_time >>= 1;
+
                     if(!throttle_time) {
                         // throttle_time--;
 
@@ -372,8 +375,11 @@ int main(int argc, char **argv) {
                     } else {
                         throttle_time--;
                     }
-                } else if(percentage > 102) {
+                } else if(percentage > throttle_hi) {
                     // emulation is too fast
+                    if(percentage > (target_speed * 2))
+                        throttle_time <<= 1;
+
                     throttle_time++;
                 }
             }
