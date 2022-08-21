@@ -730,6 +730,33 @@ inline void hflip_sprite(uint32_t *sprite_colors, uint8_t *sprite_data) {
     }
 }
 
+inline void vflip_sprite(uint32_t *sprite_colors, uint8_t *sprite_data) {
+    // vertical flip
+    uint32_t temp_color;
+    uint8_t temp_data;
+
+    uint32_t *ptr2_colors = sprite_colors + 56;
+    uint8_t *ptr2_data = sprite_data + 56;
+
+    for(int y = 0; y < 4; y++) {
+        for(int x = 0; x < 8; x++) {
+            temp_color = sprite_colors[x];
+            temp_data = sprite_data[x];
+
+            sprite_colors[x] = ptr2_colors[x];
+            sprite_data[x] = ptr2_data[x];
+
+            ptr2_colors[x] = temp_color;
+            ptr2_data[x] = temp_data;
+        }
+
+        sprite_colors += 8;
+        sprite_data += 8;
+        ptr2_colors -= 8;
+        ptr2_data -= 8;
+    }
+}
+
 void plot_small_sprite(int n) {
     // n max 40
     /*if(n >= 40) {
@@ -811,8 +838,8 @@ void plot_small_sprite(int n) {
     }
 
     // check if we need to flip this sprite
-    if(flags & 0x20) hflip_sprite(sprite_colors, sprite_data);    // horizontal flip
-    //if(flags & 0x40) vflip_sprite(&sprite_colors, &sprite_data);   // vertical flip
+    if(flags & 0x20) hflip_sprite(sprite_colors, sprite_data);      // horizontal flip
+    if(flags & 0x40) vflip_sprite(sprite_colors, sprite_data);    // vertical flip
 
     // now plot the actual sprite
     sprite_data_index = 0;
