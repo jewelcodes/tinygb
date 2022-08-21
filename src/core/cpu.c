@@ -197,7 +197,7 @@ void cpu_cycle() {
     }
 }
 
-inline void write_reg8(int reg, uint8_t r) {
+/*inline void write_reg8(int reg, uint8_t r) {
     switch(reg) {
     case REG_A:
         cpu.af &= 0x00FF;
@@ -231,9 +231,38 @@ inline void write_reg8(int reg, uint8_t r) {
         write_log("undefined opcode %02X %02X %02X, dumping CPU state...\n", read_byte(cpu.pc), read_byte(cpu.pc+1), read_byte(cpu.pc+2));
         return dump_cpu();
     }
+}*/
+
+static inline void write_reg8(int reg, uint8_t val) {
+    switch(reg) {
+    case REG_A:
+        cpu.a = val;
+        break;
+    case REG_B:
+        cpu.b = val;
+        break;
+    case REG_C:
+        cpu.c = val;
+        break;
+    case REG_D:
+        cpu.d = val;
+        break;
+    case REG_E:
+        cpu.e = val;
+        break;
+    case REG_H:
+        cpu.h = val;
+        break;
+    case REG_L:
+        cpu.l = val;
+        break;
+    default:
+        write_log("undefined opcode %02X %02X %02X, dumping CPU state...\n", read_byte(cpu.pc), read_byte(cpu.pc+1), read_byte(cpu.pc+2));
+        return dump_cpu();
+    }
 }
 
-inline uint8_t read_reg8(int reg) {
+/*inline uint8_t read_reg8(int reg) {
     uint8_t ret;
     switch(reg) {
     case REG_A:
@@ -264,9 +293,32 @@ inline uint8_t read_reg8(int reg) {
     }
 
     return ret;
+}*/
+
+static inline uint8_t read_reg8(int reg) {
+    switch(reg) {
+    case REG_A:
+        return cpu.a;
+    case REG_B:
+        return cpu.b;
+    case REG_C:
+        return cpu.c;
+    case REG_D:
+        return cpu.d;
+    case REG_E:
+        return cpu.e;
+    case REG_H:
+        return cpu.h;
+    case REG_L:
+        return cpu.l;
+    default:
+        write_log("undefined opcode %02X %02X %02X, dumping CPU state...\n", read_byte(cpu.pc), read_byte(cpu.pc+1), read_byte(cpu.pc+2));
+        dump_cpu();
+        return 0xFF;    // unreachable anyway
+    }
 }
 
-inline void write_reg16(int reg, uint16_t r) {
+static inline void write_reg16(int reg, uint16_t r) {
     switch(reg) {
     case REG_BC:
         cpu.bc = r;
@@ -286,7 +338,7 @@ inline void write_reg16(int reg, uint16_t r) {
     }
 }
 
-inline uint16_t read_reg16(int reg) {
+static inline uint16_t read_reg16(int reg) {
     switch(reg) {
     case REG_BC:
         return cpu.bc;

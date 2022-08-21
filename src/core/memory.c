@@ -145,12 +145,12 @@ void memory_start() {
     }
 }
 
-inline uint8_t read_wram(int bank, uint16_t addr) {
+static inline uint8_t read_wram(int bank, uint16_t addr) {
     uint8_t *bytes = (uint8_t *)ram;
     return bytes[(bank * 4096) + addr + WORK_RAM];
 }
 
-inline uint8_t read_hram(uint16_t addr) {
+static inline uint8_t read_hram(uint16_t addr) {
     uint8_t *bytes = (uint8_t *)ram;
     return bytes[addr + HIGH_RAM];
 }
@@ -238,7 +238,7 @@ uint8_t read_io(uint16_t addr) {
     return 0xFF;    // unreachable
 }
 
-inline uint8_t read_oam(uint16_t addr) {
+static inline uint8_t read_oam(uint16_t addr) {
     uint8_t *bytes = (uint8_t *)ram;
     return bytes[OAM + addr];
 }
@@ -281,12 +281,12 @@ inline uint16_t read_word(uint16_t addr) {
     return (uint16_t)(read_byte(addr) | ((uint16_t)read_byte(addr+1) << 8));
 }
 
-inline void write_wram(int bank, uint16_t addr, uint8_t byte) {
+static inline void write_wram(int bank, uint16_t addr, uint8_t byte) {
     uint8_t *bytes = (uint8_t *)ram;
     bytes[(bank * 4096) + addr + WORK_RAM] = byte;
 }
 
-inline void write_hram(uint16_t addr, uint8_t byte) {
+static inline void write_hram(uint16_t addr, uint8_t byte) {
     uint8_t *bytes = (uint8_t *)ram;
     bytes[addr + HIGH_RAM] = byte;
 }
@@ -377,7 +377,7 @@ void write_io(uint16_t addr, uint8_t byte) {
     }
 }
 
-inline void write_oam(uint16_t addr, uint8_t byte) {
+static inline void write_oam(uint16_t addr, uint8_t byte) {
     uint8_t *bytes = (uint8_t *)ram;
     bytes[OAM + addr] = byte;
 }

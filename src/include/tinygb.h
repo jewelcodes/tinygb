@@ -69,7 +69,40 @@ typedef struct {
 } timing_t;
 
 typedef struct {
-    uint16_t af, bc, de, hl, sp, pc, ime;
+    //uint16_t af, bc, de, hl, sp, pc, ime;
+    uint16_t ime, sp, pc;
+
+    union {
+        uint16_t af;
+        struct {
+            uint8_t f;
+            uint8_t a;
+        };
+    };
+
+    union {
+        uint16_t bc;
+        struct {
+            uint8_t c;
+            uint8_t b;
+        };
+    };
+
+    union {
+        uint16_t de;
+        struct {
+            uint8_t e;
+            uint8_t d;
+        };
+    };
+
+    union {
+        uint16_t hl;
+        struct {
+            uint8_t l;
+            uint8_t h;
+        };
+    };
 } cpu_t;
 
 typedef struct {
