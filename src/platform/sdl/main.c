@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <SDL.h>
 #include <time.h>
+#include "tinyfiledialogs.h"
 
 // SDL specific code
 
@@ -180,9 +181,15 @@ void resize_sgb_window() {
 }
 
 int main(int argc, char **argv) {
+    const char *extensions[3] = { "*.gb", "*.gbc", "*.dmg" };
+
     if(argc != 2) {
-        fprintf(stdout, "usage: %s rom_name\n", argv[0]);
-        return -1;
+        //fprintf(stdout, "usage: %s rom_name\n", argv[0]);
+        //return -1;
+        rom_filename = tinyfd_openFileDialog("Open ROM file", NULL, 3, extensions, "Game Boy ROM files", 0);
+        if(!rom_filename) return -1;
+    } else {
+        rom_filename = argv[1];
     }
 
     open_log();
@@ -190,8 +197,7 @@ int main(int argc, char **argv) {
     set_sdl_keys();
 
     // open the rom
-    rom_filename = argv[1];
-    FILE *rom_file = fopen(argv[1], "r");
+    FILE *rom_file = fopen(rom_filename, "r");
     if(!rom_file) {
         write_log("unable to open %s for reading\n", argv[1]);
         return -1;
@@ -362,9 +368,6 @@ int main(int argc, char **argv) {
             if(throttle_enabled) {
                 if(percentage < throttle_lo) {
                     // emulation is too slow
-                    if(percentage < (target_speed / 2))
-                        throttle_time >>= 1;
-
                     if(!throttle_time) {
                         // throttle_time--;
 
@@ -377,9 +380,6 @@ int main(int argc, char **argv) {
                     }
                 } else if(percentage > throttle_hi) {
                     // emulation is too fast
-                    if(percentage > (target_speed * 2))
-                        throttle_time <<= 1;
-
                     throttle_time++;
                 }
             }
