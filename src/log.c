@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include <SDL.h>
 
 char log_buffer[1000];
 
