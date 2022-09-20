@@ -33,3 +33,7 @@ git clone https://github.com/jewelcodes/tinygb.git
 cd tinygb
 make
 ```
+
+## Acknowledgements
+* [Pan Docs](https://gbdev.io/pandocs/)
+* [Mooneye Test Suite](https://github.com/Gekkio/mooneye-test-suite)
