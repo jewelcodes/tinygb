@@ -26,6 +26,9 @@ config_file_t config_file;
 
 int throttle_lo, throttle_hi;
 int target_speed;
+int config_system;
+int config_preference;
+int config_border;
 
 static FILE *file;
 
@@ -48,6 +51,8 @@ static void load_defaults() {
     config_file.preference = DEFAULT_PREFERENCE;
     config_file.border = DEFAULT_BORDER;
     config_file.scaling = DEFAULT_SCALING;
+    config_file.palette = DEFAULT_PALETTE;
+    config_file.speed = DEFAULT_SPEED;
 
     scaling = 2;
     monochrome_palette = 0;
@@ -115,24 +120,26 @@ void open_config() {
 
         load_defaults();
     }
+    else
+    {
+        config_file.a = get_property("a");
+        config_file.b = get_property("b");
+        config_file.start = get_property("start");
+        config_file.select = get_property("select");
+        config_file.up = get_property("up");
+        config_file.down = get_property("down");
+        config_file.left = get_property("left");
+        config_file.right = get_property("right");
+        config_file.throttle = get_property("throttle");
+        config_file.system = get_property("system");
+        config_file.preference = get_property("preference");
+        config_file.border = get_property("border");
+        config_file.scaling = get_property("scaling");
+        config_file.palette = get_property("palette");
+        config_file.speed = get_property("speed");
 
-    config_file.a = get_property("a");
-    config_file.b = get_property("b");
-    config_file.start = get_property("start");
-    config_file.select = get_property("select");
-    config_file.up = get_property("up");
-    config_file.down = get_property("down");
-    config_file.left = get_property("left");
-    config_file.right = get_property("right");
-    config_file.throttle = get_property("throttle");
-    config_file.system = get_property("system");
-    config_file.preference = get_property("preference");
-    config_file.border = get_property("border");
-    config_file.scaling = get_property("scaling");
-    config_file.palette = get_property("palette");
-    config_file.speed = get_property("speed");
-
-    fclose(file);
+        fclose(file);
+    }
 
     if(!strcmp(config_file.system, "auto")) config_system = SYSTEM_AUTO;
     else if(!strcmp(config_file.system, "gb")) config_system = SYSTEM_GB;

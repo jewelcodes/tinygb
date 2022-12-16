@@ -134,8 +134,8 @@ extern int throttle_hi, throttle_lo;
 extern timing_t timing;
 extern int mbc_type;
 
-config_file_t config_file;
-int target_speed;
+extern config_file_t config_file;
+extern int target_speed;
 void update_window(uint32_t *);
 void update_border(uint32_t *);
 void destroy_window();
@@ -152,9 +152,9 @@ void display_start();
 void timer_start();
 void sound_start();
 
-int config_system;
-int config_preference;
-int config_border;
+extern int config_system;
+extern int config_preference;
+extern int config_border;
 
 // cpu
 extern int throttle_enabled, throttle_time;
@@ -178,7 +178,7 @@ void send_interrupt(int);
 
 // display
 extern int drawn_frames, framecount;
-int monochrome_palette;
+extern int monochrome_palette;
 void next_palette();
 void prev_palette();
 void scale_xline(uint32_t *, uint32_t *, int);
@@ -210,9 +210,9 @@ uint8_t joypad_read(uint16_t);
 void joypad_handle(int, int);
 
 // SGB functions
-int sgb_transferring, sgb_interfere, sgb_screen_mask, using_sgb_palette, using_sgb_border;
-int gb_x, gb_y;
-int sgb_scaled_h, sgb_scaled_w;
+extern int sgb_transferring, sgb_interfere, sgb_screen_mask, using_sgb_palette, using_sgb_border;
+extern int gb_x, gb_y;
+extern int sgb_scaled_h, sgb_scaled_w;
 void sgb_start();
 void sgb_write(uint8_t);
 uint8_t sgb_read();
@@ -221,8 +221,8 @@ uint32_t truecolor(uint16_t);
 
 // CGB functions
 //#define CGB_DEBUG
-int is_double_speed;
-int prepare_speed_switch;
+extern int is_double_speed;
+extern int prepare_speed_switch;
 void cgb_write(uint16_t, uint8_t);
 uint8_t cgb_read(uint16_t);
 void cgb_dump_bgpd();
