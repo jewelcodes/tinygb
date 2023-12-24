@@ -40,6 +40,8 @@ uint32_t *sgb_scaled_border;
 sgb_border_palette_t sgb_border_palettes[4];
 uint32_t sgb_color_zero;
 
+void render_sgb_border();
+
 void sgb_start() {
     sgb_palette_data = calloc(1, 4096);
     sgb_tiles = calloc(1, 8192);

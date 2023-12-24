@@ -181,7 +181,7 @@ void write_ramfile() {
 }
 
 // MBC3 functions here
-inline uint8_t mbc3_read(uint16_t addr) {
+static inline uint8_t mbc3_read(uint16_t addr) {
     uint8_t *rom_bytes = (uint8_t *)rom;
     if(addr >= 0x4000 && addr <= 0x7FFF) {
         addr -= 0x4000;
@@ -236,7 +236,7 @@ inline uint8_t mbc3_read(uint16_t addr) {
     }
 }
 
-inline void mbc3_write(uint16_t addr, uint8_t byte) {
+static inline void mbc3_write(uint16_t addr, uint8_t byte) {
     if(addr >= 0x2000 && addr <= 0x3FFF) {
         byte &= 0x7F;
         if(!byte) byte = 1;
@@ -302,7 +302,7 @@ inline void mbc3_write(uint16_t addr, uint8_t byte) {
 }
 
 // MBC1 functions here
-inline void mbc1_write(uint16_t addr, uint8_t byte) {
+static inline void mbc1_write(uint16_t addr, uint8_t byte) {
     if(addr >= 0x2000 && addr <= 0x3FFF) {
         byte &= 0x1F;   // lower 5 bits
         mbc1.bank1 = byte;
@@ -347,7 +347,7 @@ inline void mbc1_write(uint16_t addr, uint8_t byte) {
     }
 }
 
-inline uint8_t mbc1_read(uint16_t addr) {
+static inline uint8_t mbc1_read(uint16_t addr) {
     int rom_bank, ram_bank;
     uint8_t *rom_bytes = (uint8_t *)rom;
 
@@ -402,7 +402,7 @@ inline uint8_t mbc1_read(uint16_t addr) {
 
 
 // MBC5 functions here
-inline void mbc5_write(uint16_t addr, uint8_t byte) {
+static inline void mbc5_write(uint16_t addr, uint8_t byte) {
     if(addr >= 0x2000 && addr <= 0x2FFF) {
         mbc5.rom_bank &= 0x100;
         mbc5.rom_bank |= byte;      // low 8 bits of ROM bank select
@@ -457,7 +457,7 @@ inline void mbc5_write(uint16_t addr, uint8_t byte) {
     }
 }
 
-inline uint8_t mbc5_read(uint16_t addr) {
+static inline uint8_t mbc5_read(uint16_t addr) {
     uint8_t *rom_bytes = (uint8_t *)rom;
     if(addr >= 0x4000 && addr <= 0x7FFF) {
         addr -= 0x4000;

@@ -167,7 +167,7 @@ uint8_t read_byte(uint16_t);
 uint16_t read_word(uint16_t);
 void write_byte(uint16_t, uint8_t);
 void copy_oam(void *);
-void mbc_start();
+void mbc_start(void *);
 void mbc_write(uint16_t, uint8_t);
 uint8_t mbc_read(uint16_t);
 
