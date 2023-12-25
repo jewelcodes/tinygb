@@ -273,6 +273,7 @@ int main(int argc, char **argv) {
     char new_title[256];
     int percentage;
     int throttle_underflow = 0;
+    int throttle_target = throttle_lo + 2;
 
     while(1) {
         key = 0;
@@ -376,11 +377,26 @@ int main(int argc, char **argv) {
                             write_log("WARNING: CPU throttle interval has underflown, emulation may be too slow\n");
                         }
                     } else {
-                        throttle_time--;
+                        write_log("too slow; decreasing throttle time: %d\n", throttle_time);
+
+                        // this will speed up the speed adjustments for a more natural feel
+                        if(percentage < (throttle_target/3)) throttle_time /= 3;
+                        else if(percentage < (throttle_target/2)) throttle_time /= 2;
+                        else throttle_time--;
                     }
                 } else if(percentage > throttle_hi) {
                     // emulation is too fast
-                    throttle_time++;
+                    write_log("too fast; increasing throttle time: %d\n", throttle_time);
+
+                    if(throttle_time) {
+                        // to make sure we're not multiplying zero
+                        if(percentage > (throttle_target*3)) throttle_time *= 3;
+                        else if(percentage > (throttle_target*2)) throttle_time *= 2;
+                        else throttle_time++;
+                    }
+                    else {
+                        throttle_time++;
+                    }
                 }
             }
 

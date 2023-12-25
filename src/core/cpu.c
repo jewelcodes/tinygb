@@ -27,7 +27,7 @@ int throttle_enabled = 1;
 #define REG_HL      2
 #define REG_SP      3
 
-#define THROTTLE_THRESHOLD  15      // ms
+#define THROTTLE_THRESHOLD  10      // ms
 
 const char *registers[] = {
     "b", "c", "d", "e", "h", "l", "UNDEFINED", "a"
