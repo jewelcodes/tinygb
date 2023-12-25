@@ -361,7 +361,7 @@ int main(int argc, char **argv) {
 
         if(sec != timeinfo->tm_sec) {
             sec = timeinfo->tm_sec;
-            percentage = (drawn_frames * 10000) / 5973;
+            percentage = (drawn_frames * 1000) / 597;
             sprintf(new_title, "tinygb (%d fps - %d%%)", drawn_frames, percentage);
             SDL_SetWindowTitle(window, new_title);
 
