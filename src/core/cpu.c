@@ -27,8 +27,6 @@ int throttle_enabled = 1;
 #define REG_HL      2
 #define REG_SP      3
 
-#define THROTTLE_THRESHOLD  10      // ms
-
 const char *registers[] = {
     "b", "c", "d", "e", "h", "l", "UNDEFINED", "a"
 };
@@ -90,7 +88,7 @@ void cpu_log() {
     if(is_double_speed) write_log(" [*] CPU is in double speed mode\n");
     else write_log(" [*] CPU is in standard speed mode\n");
     
-    if(throttle_enabled) write_log(" [*] CPU throttles for %d ms at a time\n", throttle_time);
+    if(throttle_enabled) write_log(" [*] CPU throttles for %d ms every %d cycles\n", throttle_time, cycles_per_throttle);
 
     write_log(" [*] AF = 0x%04X   BC = 0x%04X   DE = 0x%04X\n", cpu.af, cpu.bc, cpu.de);
     write_log(" [*] HL = 0x%04X   SP = 0x%04X   PC = 0x%04X\n", cpu.hl, cpu.sp, cpu.pc);
@@ -135,7 +133,8 @@ void cpu_start() {
 
     write_log("[cpu] started with speed %lf MHz\n", (double)cpu_speed/1000000);
 
-    cycles_per_throttle = (cpu_speed * THROTTLE_THRESHOLD)/700;
+    //cycles_per_throttle = (cpu_speed * THROTTLE_THRESHOLD)/700;
+    cycles_per_throttle = (cpu_speed / THROTTLE_THRESHOLD) * 4;
     write_log("[cpu] throttling every %d cycles\n", cycles_per_throttle);
 
     // determine values that will be used to keep track of timing

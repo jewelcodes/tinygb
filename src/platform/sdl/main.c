@@ -335,8 +335,13 @@ int main(int argc, char **argv) {
                 else if(e.key.keysym.sym == key_start) key = JOYPAD_START;
                 else if(e.key.keysym.sym == key_select) key = JOYPAD_SELECT;
                 else if(e.key.keysym.sym == key_throttle) {
-                    if(is_down) throttle_enabled = 0;
-                    else throttle_enabled = 1;
+                    if(is_down) {
+                        //write_log("disabling throttle\n");
+                        throttle_enabled = 0;
+                    } else {
+                        //write_log("enabling throttle\n");
+                        throttle_enabled = 1;
+                    }
                 } else if((e.key.keysym.sym == SDLK_PLUS || e.key.keysym.sym == SDLK_EQUALS) && is_down) next_palette();
                 else if(e.key.keysym.sym == SDLK_MINUS && is_down) prev_palette();
                 else key = 0;
@@ -377,16 +382,22 @@ int main(int argc, char **argv) {
                             write_log("WARNING: CPU throttle interval has underflown, emulation may be too slow\n");
                         }
                     } else {
-                        write_log("too slow; decreasing throttle time: %d\n", throttle_time);
+                        //write_log("too slow; decreasing throttle time: %d\n", throttle_time);
 
                         // this will speed up the speed adjustments for a more natural feel
                         if(percentage < (throttle_target/3)) throttle_time /= 3;
                         else if(percentage < (throttle_target/2)) throttle_time /= 2;
                         else throttle_time--;
                     }
+
+                    // prevent this from going too low
+                    if(throttle_time <= (THROTTLE_THRESHOLD/3)) {
+                        cycles_per_throttle += (cycles_per_throttle/5);     // delay 20% less often
+                        throttle_time = (THROTTLE_THRESHOLD/3);
+                    }
                 } else if(percentage > throttle_hi) {
                     // emulation is too fast
-                    write_log("too fast; increasing throttle time: %d\n", throttle_time);
+                    //write_log("too fast; increasing throttle time: %d\n", throttle_time);
 
                     if(throttle_time) {
                         // to make sure we're not multiplying zero
@@ -396,6 +407,12 @@ int main(int argc, char **argv) {
                     }
                     else {
                         throttle_time++;
+                    }
+
+                    // prevent unnecessary lag
+                    if(throttle_time > THROTTLE_THRESHOLD) {
+                        cycles_per_throttle -= (cycles_per_throttle/5);     // delay 20% more often
+                        throttle_time = THROTTLE_THRESHOLD;
                     }
                 }
             }

@@ -52,6 +52,9 @@
 #define VSYNC_PAUSE             1.08769     // ms
 #define OAM_SIZE                160         // bytes
 
+// CPU throttle
+#define THROTTLE_THRESHOLD      18          // ms
+
 #define JOYPAD_A                1
 #define JOYPAD_B                2
 #define JOYPAD_START            3
@@ -157,7 +160,7 @@ extern int config_preference;
 extern int config_border;
 
 // cpu
-extern int throttle_enabled, throttle_time;
+extern int throttle_enabled, throttle_time, cycles_per_throttle;
 void cpu_cycle();
 void cpu_log();
 
