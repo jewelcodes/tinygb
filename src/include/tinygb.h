@@ -54,6 +54,7 @@
 
 // CPU throttle
 #define THROTTLE_THRESHOLD      18          // ms
+#define SPEED_ALLOWANCE         4           // +/- 4% from the target speed
 
 #define JOYPAD_A                1
 #define JOYPAD_B                2

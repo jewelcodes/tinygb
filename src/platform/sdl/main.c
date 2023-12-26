@@ -273,7 +273,7 @@ int main(int argc, char **argv) {
     char new_title[256];
     int percentage;
     int throttle_underflow = 0;
-    int throttle_target = throttle_lo + 2;
+    int throttle_target = throttle_lo + SPEED_ALLOWANCE;
 
     while(1) {
         key = 0;

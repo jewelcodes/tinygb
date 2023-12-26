@@ -162,8 +162,11 @@ void open_config() {
     if(monochrome_palette > 9) monochrome_palette = 0;
 
     target_speed = atoi(config_file.speed);
-    if(target_speed < 2) target_speed = 100;    // percent
+    if(target_speed < 10 || target_speed > 500) {
+        write_log("[config] target emulation speed must be between 10-500%%, defaulting to 100%%\n");
+        target_speed = 100;
+    }
 
-    throttle_lo = target_speed-2;
-    throttle_hi = target_speed+2;
+    throttle_lo = target_speed-SPEED_ALLOWANCE;
+    throttle_hi = target_speed+SPEED_ALLOWANCE;
 }
