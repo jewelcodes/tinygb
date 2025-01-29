@@ -1,5 +1,7 @@
 # TinyGB
-TinyGB is a tiny and portable Game Boy emulator written entirely in C as a hobbyist one-man project. I only wrote this to deepen my understanding of how direct hardware low-level programming works.
+TinyGB is a tiny and portable Game Boy emulator written entirely in C as a side project. I only wrote this to deepen my understanding of how direct hardware low-level programming works.
+
+![Pokemon Red running on TinyGB](https://jewelcodes.io/tinygb.png)
 
 ## Roadmap
 - [x] (Almost) complete implementation of the Z80 CPU
@@ -37,3 +39,6 @@ make
 ## Acknowledgements
 * [Pan Docs](https://gbdev.io/pandocs/)
 * [Mooneye Test Suite](https://github.com/Gekkio/mooneye-test-suite)
+
+## License
+MIT as always.
