@@ -1,8 +1,15 @@
-
-CFLAGS=-c -Wall -Ofast -msse2 -I/usr/include/SDL2 -I./src/include
-LDFLAGS=-Ofast -msse2 -lSDL2 
 CC=gcc
 LD=gcc
+ARCH := $(shell $(CC) -dumpmachine | grep -q x86_64 && echo x86_64)
+
+CFLAGS=-c -Wall -Ofast $(shell sdl2-config --cflags) -I./src/include
+LDFLAGS=-Ofast $(shell sdl2-config --libs)
+
+ifeq ($(ARCH),x86_64)
+	CFLAGS += -msse2
+	LDFLAGS += -msse2
+endif
+
 SRC:=$(shell find ./src -type f -name "*.c")
 OBJ:=$(SRC:.c=.o)
 
@@ -14,8 +21,8 @@ clean:
 
 %.o: %.c
 	@exec echo -e "\x1B[0;1;35m [ CC ]\x1B[0m $@"
-	@$(CC) $(CFLAGS) -o $@ $<
+	@$(CC) -o $@ $< ${CFLAGS}
 
 tinygb: $(OBJ)
 	@exec echo -e "\x1B[0;1;36m [ LD ]\x1B[0m tinygb"
-	@$(LD) $(LDFLAGS) $(OBJ) -o tinygb
+	@$(LD) $(OBJ) -o tinygb ${LDFLAGS}
